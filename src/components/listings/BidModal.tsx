@@ -57,7 +57,7 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
         .insert({
           listing_id: listing.id,
           bidder_id: userData.user.id,
-          amount: amount,
+          bid_amount: amount,
           status: 'pending'
         });
 

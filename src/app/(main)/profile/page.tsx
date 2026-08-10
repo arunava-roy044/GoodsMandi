@@ -148,7 +148,7 @@ export default async function OwnProfilePage() {
                 <div key={bid.id} className="glass-card rounded-xl p-4 flex justify-between items-center">
                   <div>
                     <div className="font-medium text-slate-200 mb-1">{bid.listing?.title || 'Unknown Listing'}</div>
-                    <div className="text-sm font-semibold text-slate-300">Bid: ₹{bid.amount}</div>
+                    <div className="text-sm font-semibold text-slate-300">Bid: ₹{bid.bid_amount}</div>
                   </div>
                   <div>
                     {bid.status === 'accepted' && <span className="badge-success">Accepted</span>}
