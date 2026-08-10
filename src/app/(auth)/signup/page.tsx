@@ -51,13 +51,15 @@ export default function SignupPage() {
       })
 
       if (error) {
-        showToast(error.message, 'error')
+        console.error('Signup error:', JSON.stringify(error, null, 2), 'message:', error.message, 'status:', error.status, 'code:', error.code)
+        showToast(error.message || 'Signup failed. Please try again.', 'error')
       } else {
         setSuccess(true)
         showToast('Registration successful! Check your email to verify.', 'success')
       }
     } catch (err: any) {
-      showToast('An unexpected error occurred.', 'error')
+      console.error('Signup unexpected error:', JSON.stringify(err, null, 2), 'message:', err?.message, 'stack:', err?.stack)
+      showToast(err?.message || 'An unexpected error occurred.', 'error')
     } finally {
       setLoading(false)
     }
