@@ -60,11 +60,11 @@ export default function CreateListingPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_banned')
+        .select('banned')
         .eq('id', userData.user.id)
         .single();
 
-      if (profile?.is_banned) {
+      if (profile?.banned) {
         throw new Error('Your account is restricted from creating listings.');
       }
 
