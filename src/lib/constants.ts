@@ -32,6 +32,10 @@ export const PRODUCT_AGE_BRACKETS = [
 
 export type ProductAgeBracket = (typeof PRODUCT_AGE_BRACKETS)[number];
 
+// Extra dropdown choice that lets the seller type their own product age
+export const PRODUCT_AGE_OTHER = 'Others';
+export const PRODUCT_AGE_CUSTOM_MAX_LENGTH = 40;
+
 // Report categories
 export const REPORT_CATEGORIES = [
   'No-show',
