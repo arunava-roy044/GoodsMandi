@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const AUTH_TIMEOUT_MS = 4000;
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -30,9 +32,20 @@ export async function updateSession(request: NextRequest) {
   );
 
   // IMPORTANT: Do NOT use getSession() here. getUser() validates with the Auth server.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // If Supabase is unreachable, supabase-js keeps retrying the token refresh for ~30s,
+  // which stalls every request. Give up after AUTH_TIMEOUT_MS and treat the user as signed out.
+  let user = null;
+  try {
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase auth timed out')), AUTH_TIMEOUT_MS)
+      ),
+    ]);
+    user = result.data.user;
+  } catch (error) {
+    console.error('Proxy: could not reach Supabase auth:', error);
+  }
 
   // Redirect unauthenticated users from protected routes
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
