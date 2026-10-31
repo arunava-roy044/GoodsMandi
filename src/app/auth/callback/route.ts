@@ -4,7 +4,11 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') || '/listings'
+  // Only allow same-site paths, so `next` can't send users to another host
+  const nextParam = searchParams.get('next')
+  const next = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.startsWith('/\\')
+    ? nextParam
+    : '/listings'
   
   if (code) {
     const supabase = await createClient()

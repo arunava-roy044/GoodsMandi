@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { timeAgo } from '@/lib/utils';
+import { timeAgo, errorMessage } from '@/lib/utils';
 
 type Report = {
   id: string;
@@ -27,6 +27,33 @@ export default function AdminDashboard() {
   const router = useRouter();
   const supabase = createClient();
 
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('reports')
+        .select(`
+          id,
+          reporter_id,
+          reported_user_id,
+          category,
+          description,
+          status,
+          created_at,
+          reporter:profiles!reporter_id(name),
+          reported:profiles!reported_user_id(name, warning_count)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReports((data as unknown as Report[]) || []);
+    } catch (err) {
+      console.error('Error fetching reports:', errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function checkAdminAndFetch() {
       try {
@@ -48,41 +75,14 @@ export default function AdminDashboard() {
         }
 
         fetchReports();
-      } catch (err: any) {
-        console.error('Error in admin init:', err?.message || err);
+      } catch (err) {
+        console.error('Error in admin init:', errorMessage(err));
         router.push('/');
       }
     }
 
     checkAdminAndFetch();
   }, [router, supabase]);
-
-  const fetchReports = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select(`
-          id,
-          reporter_id,
-          reported_user_id,
-          category,
-          description,
-          status,
-          created_at,
-          reporter:profiles!reporter_id(name),
-          reported:profiles!reported_user_id(name, warning_count)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setReports((data as any) || []);
-    } catch (err: any) {
-      console.error('Error fetching reports:', err?.message || err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAction = async (reportId: string, reportedUserId: string, action: 'confirmed' | 'dismissed') => {
     setProcessingId(reportId);
@@ -95,13 +95,7 @@ export default function AdminDashboard() {
 
       if (updateError) throw updateError;
 
-      // 2. If confirmed, call RPC to increment warning count safely
-      if (action === 'confirmed') {
-        const { error: rpcError } = await supabase.rpc('increment_warning_count', {
-          user_id: reportedUserId
-        });
-        if (rpcError) throw rpcError;
-      }
+      // The database trigger on reports increments warning_count (and bans at 3)
 
       // Update local state
       setReports(prev => prev.map(r => 
@@ -195,7 +189,7 @@ export default function AdminDashboard() {
           <div className="glass-card p-12 text-center rounded-2xl">
             <svg className="w-16 h-16 text-slate-500 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <h3 className="text-xl font-semibold text-slate-300 mb-2">No {activeTab} reports</h3>
-            <p className="text-slate-500">You're all caught up!</p>
+            <p className="text-slate-500">You&apos;re all caught up!</p>
           </div>
         ) : (
           filteredReports.map((report) => (

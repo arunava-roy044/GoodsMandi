@@ -52,7 +52,9 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage, onClose: () => voi
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    setIsVisible(true)
+    // Flip on the next frame so the enter transition runs
+    const frame = requestAnimationFrame(() => setIsVisible(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   const icons = {

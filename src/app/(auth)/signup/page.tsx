@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
+import { errorMessage } from '@/lib/utils'
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
@@ -18,7 +18,6 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   
-  const router = useRouter()
   const { showToast } = useToast()
   const supabase = createClient()
 
@@ -58,9 +57,9 @@ export default function SignupPage() {
         setSuccess(true)
         showToast('Registration successful! Check your email to verify.', 'success')
       }
-    } catch (err: any) {
-      console.error('Signup unexpected error:', JSON.stringify(err, null, 2), 'message:', err?.message, 'stack:', err?.stack)
-      showToast(err?.message || 'An unexpected error occurred.', 'error')
+    } catch (err) {
+      console.error('Signup unexpected error:', JSON.stringify(err, null, 2), 'message:', errorMessage(err))
+      showToast(errorMessage(err, 'An unexpected error occurred.'), 'error')
     } finally {
       setLoading(false)
     }
@@ -76,7 +75,7 @@ export default function SignupPage() {
         </div>
         <h2 className="text-2xl font-semibold text-white mb-2">Check your email</h2>
         <p className="text-slate-400 mb-6">
-          We've sent a verification link to <span className="text-white font-medium">{email}</span>.
+          We&apos;ve sent a verification link to <span className="text-white font-medium">{email}</span>.
         </p>
         <Link href="/login" className="btn-secondary w-full py-2.5 inline-block">
           Return to Login

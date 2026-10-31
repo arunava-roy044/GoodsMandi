@@ -36,3 +36,11 @@ export function getPublicUrl(path: string): string {
 export function classNames(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+
+// Supabase errors are plain objects with a `message`, not Error instances
+export function errorMessage(err: unknown, fallback = 'An unexpected error occurred'): string {
+  if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string' && err.message) {
+    return err.message;
+  }
+  return fallback;
+}

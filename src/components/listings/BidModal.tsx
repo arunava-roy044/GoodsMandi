@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { errorMessage } from '@/lib/utils'
 
 interface BidModalProps {
   listing: {
@@ -26,10 +27,10 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
   // Check for existing bid when modal opens
   useEffect(() => {
     if (!isOpen) return;
-    setCheckingBid(true);
-    setError(null);
 
     (async () => {
+      setCheckingBid(true);
+      setError(null);
       try {
         const { createClient } = await import('@/lib/supabase/client');
         const supabase = createClient();
@@ -47,7 +48,7 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
           setExistingBid(bid);
           setBidAmount(bid.bid_amount.toString());
         }
-      } catch (err) {
+      } catch {
         // Silently fail — not critical
       } finally {
         setCheckingBid(false);
@@ -132,8 +133,8 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
       // Success
       alert(existingBid ? 'Bid updated successfully!' : 'Bid placed successfully!');
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to place bid');
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to place bid'));
     } finally {
       setLoading(false);
     }

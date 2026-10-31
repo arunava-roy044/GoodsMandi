@@ -35,8 +35,7 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
   const minThreshold = Math.floor(askingPrice * 0.7);
   const supabase = createClient();
 
-  const fetchBids = async () => {
-    setLoading(true);
+  const loadBids = async () => {
     const { data, error } = await supabase
       .from('bids')
       .select(`
@@ -47,13 +46,21 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
       .order('bid_amount', { ascending: false });
 
     if (!error && data) {
-      setBids(data as any);
+      setBids(data as unknown as Bid[]);
     }
     setLoading(false);
   };
 
+  const fetchBids = () => {
+    setLoading(true);
+    return loadBids();
+  };
+
   useEffect(() => {
-    fetchBids();
+    // loading starts true, so the first load doesn't need to set it. State is only
+    // set after the query resolves, which this rule can't see through the call.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadBids();
   }, [listingId]);
 
   const handleSelectWinner = async (bidId: string, bidderId: string) => {
@@ -71,16 +78,18 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
       if (listingErr) throw listingErr;
       
       // 2. Update winning bid
-      await supabase.from('bids').update({ status: 'selected' }).eq('id', bidId);
-      
+      const { error: winnerErr } = await supabase.from('bids').update({ status: 'selected' }).eq('id', bidId);
+      if (winnerErr) throw winnerErr;
+
       // 3. Reject other pending bids
-      await supabase
+      const { error: rejectErr } = await supabase
         .from('bids')
         .update({ status: 'rejected' })
         .eq('listing_id', listingId)
         .eq('status', 'pending')
         .neq('id', bidId);
-        
+      if (rejectErr) throw rejectErr;
+
       fetchBids();
     } catch (error) {
       console.error('Error selecting winner:', error);
@@ -100,10 +109,12 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
         
       if (error) throw error;
       
-      await supabase.from('bids').update({ status: 'backup' }).eq('id', bidId);
+      const { error: bidErr } = await supabase.from('bids').update({ status: 'backup' }).eq('id', bidId);
+      if (bidErr) throw bidErr;
       fetchBids();
     } catch (error) {
       console.error('Error selecting backup:', error);
+      alert('Failed to set backup bidder.');
     } finally {
       setActionLoading(null);
     }

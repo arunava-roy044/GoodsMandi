@@ -9,8 +9,30 @@ import BidDashboard from '@/components/listings/BidDashboard';
 import BidModalController from './BidModalController';
 import DeleteListingButton from './DeleteListingButton';
 
+type ListingDetail = {
+  id: string;
+  seller_id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  asking_price: number;
+  product_age: string;
+  photos: string[] | null;
+  status: 'active' | 'sold' | 'removed';
+  selected_bidder_id: string | null;
+  created_at: string;
+  seller: {
+    id: string;
+    name: string;
+    profile_photo_url: string | null;
+    rating_avg: number;
+    total_items_sold: number;
+  };
+  winner: { id: string; name: string } | null;
+};
+
 interface ListingDetailClientProps {
-  listing: any;
+  listing: ListingDetail;
   categoryColor: string;
   serverUserId: string | null;
 }
@@ -21,10 +43,8 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
 
   // Client-side auth check as fallback when server-side auth returns null
   useEffect(() => {
-    if (serverUserId) {
-      setAuthChecked(true);
-      return;
-    }
+    // authChecked already starts true when the server knew the user
+    if (serverUserId) return;
 
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {

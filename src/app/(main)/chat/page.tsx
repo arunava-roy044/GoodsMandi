@@ -3,8 +3,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { timeAgo } from '@/lib/utils';
-import { ChatMessage, Profile, Listing } from '@/lib/types';
+import { timeAgo, errorMessage } from '@/lib/utils';
+
+type ChatParty = { id: string; name: string; profile_photo_url: string | null };
+
+type ConversationRow = {
+  listing_id: string;
+  sender_id: string;
+  message_text: string;
+  created_at: string;
+  listing: { title: string } | null;
+  sender: ChatParty | null;
+  recipient: ChatParty | null;
+};
 
 type Conversation = {
   listing_id: string;
@@ -54,7 +65,7 @@ export default function ChatListPage() {
         // Group by conversation (listing_id + other_user_id)
         const convMap = new Map<string, Conversation>();
 
-        messages?.forEach((msg: any) => {
+        (messages as unknown as ConversationRow[] | null)?.forEach((msg) => {
           const isSender = msg.sender_id === user.id;
           const otherUser = isSender ? msg.recipient : msg.sender;
           
@@ -68,7 +79,7 @@ export default function ChatListPage() {
               other_user_id: otherUser.id,
               listing_title: msg.listing?.title || 'Unknown Listing',
               other_user_name: otherUser.name || 'Unknown User',
-              other_user_photo: otherUser.profile_photo_url,
+              other_user_photo: otherUser.profile_photo_url ?? undefined,
               last_message: msg.message_text,
               last_message_time: msg.created_at
             });
@@ -76,9 +87,9 @@ export default function ChatListPage() {
         });
 
         setConversations(Array.from(convMap.values()));
-      } catch (err: any) {
-        console.error('Error fetching conversations:', err?.message || err);
-        setFetchError(err?.message || 'An unexpected error occurred');
+      } catch (err) {
+        console.error('Error fetching conversations:', errorMessage(err));
+        setFetchError(errorMessage(err, 'An unexpected error occurred'));
       } finally {
         setLoading(false);
       }
