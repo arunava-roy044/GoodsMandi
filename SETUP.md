@@ -21,6 +21,7 @@
 2. Open `supabase/migrations/001_schema.sql` from this project
 3. Paste the entire contents into the SQL Editor and click **Run**
 4. Then open `supabase/migrations/002_storage.sql` and run it the same way
+5. Run every remaining file in `supabase/migrations/` the same way, in filename order
 
 This creates all tables, enums, triggers, RLS policies, and storage buckets.
 
@@ -35,25 +36,7 @@ This creates all tables, enums, triggers, RLS policies, and storage buckets.
    - Add `http://localhost:3000/auth/callback` to **Redirect URLs**
 
 ### Email Domain Restriction
-To restrict signups to `@stu.upes.ac.in` only:
-1. Go to **Authentication > Hooks** (or use the SQL Editor)
-2. Run this SQL to create a hook that validates email domains:
-
-```sql
-CREATE OR REPLACE FUNCTION public.check_email_domain()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.email NOT LIKE '%@stu.upes.ac.in' THEN
-    RAISE EXCEPTION 'Only @stu.upes.ac.in email addresses are allowed';
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Note: This is also enforced in the application layer
-```
-
-The app also enforces this client-side and server-side, but the database trigger provides defense in depth.
+Signups are restricted to `@stu.upes.ac.in` by a trigger on `auth.users`, created in `supabase/migrations/20261031170000_security_hardening.sql`. The app also checks this in the browser.
 
 ---
 

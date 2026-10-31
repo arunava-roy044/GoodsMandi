@@ -88,7 +88,7 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
           <svg className="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-          {profile.name}'s Active Listings
+          {profile.name}&apos;s Active Listings
         </h2>
         
         {activeListings && activeListings.length > 0 ? (
@@ -118,7 +118,7 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
           </div>
         ) : (
           <div className="glass-card p-12 text-center rounded-2xl text-slate-400">
-            This user doesn't have any active listings.
+            This user doesn&apos;t have any active listings.
           </div>
         )}
       </div>

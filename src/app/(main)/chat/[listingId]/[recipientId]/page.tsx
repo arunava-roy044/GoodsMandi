@@ -4,13 +4,14 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { timeAgo } from '@/lib/utils';
+import { timeAgo, errorMessage } from '@/lib/utils';
 import ReportModal from '@/components/reports/ReportModal';
 
 type Message = {
   id: string;
   message_text: string;
   sender_id: string;
+  recipient_id: string;
   created_at: string;
 };
 
@@ -41,7 +42,7 @@ export default function ChatThreadPage() {
   }, [messages]);
 
   useEffect(() => {
-    let subscription: any;
+    let subscription: ReturnType<typeof supabase.channel> | undefined;
 
     async function fetchInitialData() {
       try {
@@ -61,7 +62,7 @@ export default function ChatThreadPage() {
         // Fetch messages
         const { data: msgs, error } = await supabase
           .from('chat_messages')
-          .select('id, message_text, sender_id, created_at')
+          .select('id, message_text, sender_id, recipient_id, created_at')
           .eq('listing_id', listingId)
           .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
           .order('created_at', { ascending: true });
@@ -80,16 +81,16 @@ export default function ChatThreadPage() {
           }, payload => {
             const newMsg = payload.new as Message;
             if (
-              (newMsg.sender_id === user.id && (payload.new as any).recipient_id === recipientId) ||
-              (newMsg.sender_id === recipientId && (payload.new as any).recipient_id === user.id)
+              (newMsg.sender_id === user.id && newMsg.recipient_id === recipientId) ||
+              (newMsg.sender_id === recipientId && newMsg.recipient_id === user.id)
             ) {
               setMessages(prev => [...prev, newMsg]);
             }
           })
           .subscribe();
 
-      } catch (err: any) {
-        console.error('Error fetching chat thread:', err?.message || err);
+      } catch (err) {
+        console.error('Error fetching chat thread:', errorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -123,8 +124,8 @@ export default function ChatThreadPage() {
         });
         
       if (error) throw error;
-    } catch (err: any) {
-      console.error('Error sending message:', err?.message || err);
+    } catch (err) {
+      console.error('Error sending message:', errorMessage(err));
       // In a real app, you might want to show a toast error here and restore the message text
     } finally {
       setSending(false);

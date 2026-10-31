@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { REPORT_CATEGORIES } from '@/lib/constants';
+import { errorMessage } from '@/lib/utils'
 
 type ReportModalProps = {
   reportedUserId: string;
@@ -57,8 +58,8 @@ export default function ReportModal({ reportedUserId, reportedListingId, isOpen,
         setDescription('');
       }, 3000);
       
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit report. Please try again.');
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to submit report. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }

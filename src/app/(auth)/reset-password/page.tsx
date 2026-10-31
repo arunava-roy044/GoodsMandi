@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
+import { errorMessage } from '@/lib/utils'
+
+const EyeIcon = ({ show }: { show: boolean }) => show ? (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+  </svg>
+) : (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+)
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -19,28 +31,32 @@ export default function ResetPasswordPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Supabase automatically handles the token exchange from the URL hash
-    // when the client is initialized. We just need to verify a session exists.
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setSessionReady(true)
-      } else {
-        // Listen for auth state change (token exchange happens async)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-          if (event === 'PASSWORD_RECOVERY') {
-            setSessionReady(true)
-          }
-        })
-        // Timeout after 5 seconds
-        setTimeout(() => {
-          if (!sessionReady) setSessionError(true)
-        }, 5000)
-        return () => subscription.unsubscribe()
-      }
+    // The reset link goes through /auth/callback, which exchanges the code for a
+    // session before redirecting here. We just need to verify a session exists.
+    let ready = false
+    const markReady = () => {
+      ready = true
+      setSessionReady(true)
     }
-    checkSession()
-  }, [])
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || session) markReady()
+    })
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) markReady()
+    })
+
+    // Give up after 5 seconds
+    const timeout = setTimeout(() => {
+      if (!ready) setSessionError(true)
+    }, 5000)
+
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,8 +84,8 @@ export default function ResetPasswordPage() {
         await supabase.auth.signOut()
         setTimeout(() => router.push('/login'), 1500)
       }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to update password.', 'error')
+    } catch (err) {
+      showToast(errorMessage(err, 'Failed to update password.'), 'error')
     } finally {
       setLoading(false)
     }
@@ -105,17 +121,6 @@ export default function ResetPasswordPage() {
       </div>
     )
   }
-
-  const EyeIcon = ({ show }: { show: boolean }) => show ? (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-    </svg>
-  ) : (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    </svg>
-  )
 
   return (
     <div className="glass-card p-8 rounded-2xl w-full">

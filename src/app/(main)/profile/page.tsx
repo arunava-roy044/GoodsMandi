@@ -160,7 +160,7 @@ export default async function OwnProfilePage() {
             </div>
           ) : (
             <div className="glass-card p-6 text-center rounded-xl text-slate-400">
-              You haven't placed any bids yet.
+              You haven&apos;t placed any bids yet.
             </div>
           )}
         </div>

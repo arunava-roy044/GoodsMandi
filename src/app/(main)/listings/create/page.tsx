@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { LISTING_CATEGORIES, PRODUCT_AGE_BRACKETS, PROHIBITED_KEYWORDS } from '@/lib/constants';
 import PhotoUpload from '@/components/listings/PhotoUpload';
+import { errorMessage } from '@/lib/utils'
 
 export default function CreateListingPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function CreateListingPage() {
         const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
         const filePath = `${userData.user.id}/${fileName}`;
 
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('listing-photos')
           .upload(filePath, file);
 
@@ -106,8 +107,8 @@ export default function CreateListingPage() {
       if (insertError) throw insertError;
 
       router.push(`/listings/${newListing.id}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create listing');
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to create listing'));
       setLoading(false);
     }
   };
