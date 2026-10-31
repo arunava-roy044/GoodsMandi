@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={`${inter.className} bg-slate-950 text-slate-50 min-h-screen antialiased`}>
         <ToastProvider>
           <main className="flex flex-col min-h-screen">
