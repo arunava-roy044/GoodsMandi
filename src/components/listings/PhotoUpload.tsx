@@ -85,7 +85,7 @@ export default function PhotoUpload({ photos, onChange }: PhotoUploadProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+          className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
             isDragging 
               ? 'border-emerald-500 bg-emerald-500/10' 
               : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600'

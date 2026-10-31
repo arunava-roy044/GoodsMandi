@@ -131,7 +131,7 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
       }
 
       // Success
-      alert(existingBid ? 'Bid updated successfully!' : 'Bid placed successfully!');
+      alert(existingBid ? 'Your offer has been updated.' : 'Your offer has been sent to the seller.');
       onClose();
     } catch (err) {
       setError(errorMessage(err, 'Failed to place bid'));
@@ -143,8 +143,8 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="bg-slate-900 border border-white/10 rounded-lg w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-1">
             {existingBid ? 'Update Your Bid' : 'Place a Bid'}
@@ -153,7 +153,7 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
 
           {isMaxedOut ? (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
+              <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
                 <div className="font-medium mb-1">Maximum bids reached</div>
                 <p>You&apos;ve used all {MAX_BID_ATTEMPTS} bid attempts on this listing. Your current bid of ₹{existingBid?.bid_amount} stands.</p>
               </div>

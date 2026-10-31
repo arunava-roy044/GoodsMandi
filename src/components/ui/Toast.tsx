@@ -85,7 +85,7 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage, onClose: () => voi
     <div
       className={`transform transition-all duration-300 ease-in-out ${
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-      } flex items-center p-4 rounded-xl border backdrop-blur-md shadow-lg ${bgColors[toast.type]}`}
+      } flex items-center p-4 rounded-lg border shadow-lg ${bgColors[toast.type]}`}
     >
       <div className="flex-shrink-0 mr-3">
         {icons[toast.type]}

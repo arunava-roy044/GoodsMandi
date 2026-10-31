@@ -64,7 +64,7 @@ export default function Navbar() {
     if (error) {
       showToast(error.message, 'error')
     } else {
-      showToast('Logged out successfully', 'success')
+      showToast('Logged out', 'success')
       setUserMenuOpen(false)
       router.push('/login')
     }
@@ -84,12 +84,12 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+    <nav className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0">
-              <span className="text-xl font-bold gradient-text tracking-tight">GoodsMandi</span>
+              <span className="text-lg font-semibold text-white tracking-tight">GoodsMandi</span>
             </Link>
             <div className="hidden md:block ml-10">
               <div className="flex items-baseline space-x-4">
@@ -125,7 +125,7 @@ export default function Navbar() {
                     </button>
                   </div>
                   {userMenuOpen && (
-                    <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl bg-slate-900 border border-slate-700 py-1 shadow-2xl shadow-black/50 ring-1 ring-black ring-opacity-5 focus:outline-none backdrop-blur-none">
+                    <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg bg-slate-900 border border-slate-700 py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
                       <Link
                         href="/profile"
                         className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
@@ -191,7 +191,7 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div ref={mobileMenuRef} className="md:hidden glass-card border-t-0">
+        <div ref={mobileMenuRef} className="md:hidden bg-slate-950 border-t border-slate-800">
           <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
             {navLinks.map((link) => (
               <Link

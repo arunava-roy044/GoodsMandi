@@ -40,7 +40,7 @@ export default async function MyListingsPage() {
       </div>
 
       {!listings || listings.length === 0 ? (
-        <div className="glass-card p-16 text-center rounded-2xl flex flex-col items-center">
+        <div className="glass-card p-16 text-center rounded-lg flex flex-col items-center">
           <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 text-brand-500">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
           </div>
@@ -53,14 +53,14 @@ export default async function MyListingsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {listings.map((listing) => (
-            <Link key={listing.id} href={`/listings/${listing.id}`} className={`block glass-card glass-card-hover rounded-2xl overflow-hidden group flex flex-col h-full transition-all ${listing.status === 'removed' ? 'opacity-50 grayscale' : ''}`}>
+            <Link key={listing.id} href={`/listings/${listing.id}`} className={`block glass-card-hover rounded-lg overflow-hidden group flex flex-col h-full transition-all ${listing.status === 'removed' ? 'opacity-50 grayscale' : ''}`}>
               <div className="relative h-48 bg-slate-800">
                 {listing.photos && listing.photos.length > 0 ? (
                   <Image 
                     src={listing.photos[0]} 
                     alt={listing.title} 
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="object-cover transition-transform duration-500"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 ) : (

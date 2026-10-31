@@ -37,7 +37,7 @@ export default function LoginPage() {
           showToast(error.message, 'error')
         }
       } else {
-        showToast('Successfully logged in!', 'success')
+        showToast('Logged in', 'success')
         router.push('/listings')
         router.refresh()
       }
@@ -65,7 +65,7 @@ export default function LoginPage() {
         showToast(error.message, 'error')
       } else {
         setResetSent(true)
-        showToast('Password reset email sent! Check your inbox.', 'success')
+        showToast('Reset link sent. Check your inbox.', 'success')
       }
     } catch (err) {
       showToast(errorMessage(err, 'Failed to send reset email.'), 'error')
@@ -77,7 +77,7 @@ export default function LoginPage() {
   // Reset email sent confirmation
   if (resetSent) {
     return (
-      <div className="glass-card p-8 rounded-2xl w-full text-center">
+      <div className="glass-card p-8 rounded-lg w-full text-center">
         <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -100,7 +100,7 @@ export default function LoginPage() {
   // Forgot password form
   if (resetMode) {
     return (
-      <div className="glass-card p-8 rounded-2xl w-full">
+      <div className="glass-card p-8 rounded-lg w-full">
         <h2 className="text-2xl font-semibold text-white mb-2">Reset your password</h2>
         <p className="text-slate-400 text-sm mb-6">Enter your college email and we&apos;ll send you a reset link.</p>
         
@@ -140,8 +140,8 @@ export default function LoginPage() {
 
   // Normal login form
   return (
-    <div className="glass-card p-8 rounded-2xl w-full">
-      <h2 className="text-2xl font-semibold text-white mb-6">Welcome back</h2>
+    <div className="glass-card p-8 rounded-lg w-full">
+      <h2 className="text-2xl font-semibold text-white mb-6">Log in</h2>
       
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
@@ -156,7 +156,7 @@ export default function LoginPage() {
             placeholder="you@stu.upes.ac.in"
             required
           />
-          <p className="text-xs text-slate-500 mt-1">Please use your college email address.</p>
+          <p className="text-xs text-slate-500 mt-1">Your @stu.upes.ac.in address.</p>
         </div>
 
         <div>
@@ -206,7 +206,7 @@ export default function LoginPage() {
           disabled={loading}
           className="btn-primary w-full py-2.5 flex justify-center items-center"
         >
-          {loading ? <Spinner size="sm" /> : 'Log In'}
+          {loading ? <Spinner size="sm" /> : 'Log in'}
         </button>
       </form>
 

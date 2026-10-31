@@ -66,8 +66,8 @@ export default function ReportModal({ reportedUserId, reportedListingId, isOpen,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-      <div className="glass-card w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+      <div className="glass-card w-full max-w-md rounded-lg p-6 shadow-2xl relative">
         {success ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">

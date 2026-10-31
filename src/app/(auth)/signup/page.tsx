@@ -67,7 +67,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="glass-card p-8 rounded-2xl w-full text-center">
+      <div className="glass-card p-8 rounded-lg w-full text-center">
         <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -85,7 +85,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="glass-card p-8 rounded-2xl w-full">
+    <div className="glass-card p-8 rounded-lg w-full">
       <h2 className="text-2xl font-semibold text-white mb-6">Create an account</h2>
       
       <form onSubmit={handleSignup} className="space-y-4">
