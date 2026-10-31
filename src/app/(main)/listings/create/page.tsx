@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LISTING_CATEGORIES, PRODUCT_AGE_BRACKETS, PROHIBITED_KEYWORDS } from '@/lib/constants';
+import {
+  LISTING_CATEGORIES,
+  PRODUCT_AGE_BRACKETS,
+  PRODUCT_AGE_CUSTOM_MAX_LENGTH,
+  PRODUCT_AGE_OTHER,
+  PROHIBITED_KEYWORDS,
+} from '@/lib/constants';
 import PhotoUpload from '@/components/listings/PhotoUpload';
 import { errorMessage } from '@/lib/utils'
 
@@ -14,6 +20,7 @@ export default function CreateListingPage() {
   const [category, setCategory] = useState<string>(LISTING_CATEGORIES[0]);
   const [askingPrice, setAskingPrice] = useState('');
   const [productAge, setProductAge] = useState<string>(PRODUCT_AGE_BRACKETS[0]);
+  const [customProductAge, setCustomProductAge] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +42,18 @@ export default function CreateListingPage() {
     if (isNaN(price) || price <= 0) {
       setError('Asking price must be greater than 0.');
       return false;
+    }
+
+    if (productAge === PRODUCT_AGE_OTHER) {
+      const customAge = customProductAge.trim();
+      if (customAge.length === 0) {
+        setError('Please type the product age.');
+        return false;
+      }
+      if (customAge.length > PRODUCT_AGE_CUSTOM_MAX_LENGTH) {
+        setError(`Product age must be at most ${PRODUCT_AGE_CUSTOM_MAX_LENGTH} characters.`);
+        return false;
+      }
     }
 
     const textToCheck = `${title} ${description}`.toLowerCase();
@@ -96,7 +115,7 @@ export default function CreateListingPage() {
           description,
           category,
           asking_price: Number(askingPrice),
-          product_age: productAge,
+          product_age: productAge === PRODUCT_AGE_OTHER ? customProductAge.trim() : productAge,
           photos: photoUrls,
           seller_id: userData.user.id,
           status: 'active'
@@ -210,7 +229,21 @@ export default function CreateListingPage() {
               {PRODUCT_AGE_BRACKETS.map((age) => (
                 <option key={age} value={age} className="bg-slate-900 text-slate-200">{age}</option>
               ))}
+              <option value={PRODUCT_AGE_OTHER} className="bg-slate-900 text-slate-200">{PRODUCT_AGE_OTHER}</option>
             </select>
+            {productAge === PRODUCT_AGE_OTHER && (
+              <input
+                id="custom-age"
+                type="text"
+                required
+                maxLength={PRODUCT_AGE_CUSTOM_MAX_LENGTH}
+                placeholder="Type the product age, e.g. 3 years or 2 weeks"
+                aria-label="Product age"
+                className="input-field w-full"
+                value={customProductAge}
+                onChange={(e) => setCustomProductAge(e.target.value)}
+              />
+            )}
           </div>
 
           <div className="space-y-3 md:col-span-2">
