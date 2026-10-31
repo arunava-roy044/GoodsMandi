@@ -9,7 +9,7 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id, name, year_of_study, branch_course, profile_photo_url, verified, rating_avg, total_items_sold, warning_count')
     .eq('id', userId)
     .single();
 
