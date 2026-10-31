@@ -35,10 +35,9 @@ export default async function OwnProfilePage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
       {/* Profile Header */}
-      <div className="glass-card rounded-2xl p-8 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+      <div className="glass-card rounded-lg p-8 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
         
-        <div className="w-32 h-32 rounded-full bg-slate-800 border-4 border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center z-10 shadow-xl">
+        <div className="w-32 h-32 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center z-10">
           {profile.profile_photo_url ? (
             <img src={profile.profile_photo_url} alt={profile.name} className="w-full h-full object-cover" />
           ) : (
@@ -77,13 +76,13 @@ export default async function OwnProfilePage() {
           </div>
 
           <div className="flex justify-center md:justify-start gap-4">
-            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
               <div className="text-2xl font-bold text-white">{profile.total_items_sold || 0}</div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Items Sold</div>
+              <div className="text-xs text-slate-400 font-semibold">Items Sold</div>
             </div>
-            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
               <div className="text-2xl font-bold text-brand-400">{activeListings?.length || 0}</div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Active Listings</div>
+              <div className="text-xs text-slate-400 font-semibold">Active Listings</div>
             </div>
           </div>
         </div>
@@ -122,14 +121,14 @@ export default async function OwnProfilePage() {
           {activeListings && activeListings.length > 0 ? (
             <div className="space-y-3">
               {activeListings.slice(0, 3).map(listing => (
-                <Link key={listing.id} href={`/listings/${listing.id}`} className="block glass-card glass-card-hover rounded-xl p-4 transition-all">
+                <Link key={listing.id} href={`/listings/${listing.id}`} className="block glass-card-hover rounded-lg p-4">
                   <div className="font-semibold text-slate-200 mb-1">{listing.title}</div>
                   <div className="text-sm text-brand-400 font-medium">₹{listing.asking_price}</div>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="glass-card p-6 text-center rounded-xl text-slate-400">
+            <div className="glass-card p-6 text-center rounded-lg text-slate-400">
               No active listings right now.
             </div>
           )}
@@ -145,7 +144,7 @@ export default async function OwnProfilePage() {
           {userBids && userBids.length > 0 ? (
             <div className="space-y-3">
               {userBids.slice(0, 5).map(bid => (
-                <div key={bid.id} className="glass-card rounded-xl p-4 flex justify-between items-center">
+                <div key={bid.id} className="glass-card rounded-lg p-4 flex justify-between items-center">
                   <div>
                     <div className="font-medium text-slate-200 mb-1">{bid.listing?.title || 'Unknown Listing'}</div>
                     <div className="text-sm font-semibold text-slate-300">Bid: ₹{bid.bid_amount}</div>
@@ -159,7 +158,7 @@ export default async function OwnProfilePage() {
               ))}
             </div>
           ) : (
-            <div className="glass-card p-6 text-center rounded-xl text-slate-400">
+            <div className="glass-card p-6 text-center rounded-lg text-slate-400">
               You haven&apos;t placed any bids yet.
             </div>
           )}

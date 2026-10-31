@@ -10,10 +10,10 @@ export default function TermsPage() {
         </Link>
       </div>
 
-      <div className="glass-card rounded-2xl p-8 md:p-12 prose prose-invert prose-slate max-w-none">
-        <h1 className="text-4xl font-bold mb-2 gradient-text">Terms of Service</h1>
+      <div className="glass-card rounded-lg p-8 md:p-12 prose prose-invert prose-slate max-w-none">
+        <h1 className="text-3xl font-semibold text-white mb-2">Terms of Service</h1>
         <p className="text-slate-400 mb-4 font-medium">Last updated: August 20, 2026</p>
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm mb-8">
+        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm mb-8">
           <strong>Important note:</strong> This is a founder-drafted document, not final legal advice, pending review by a lawyer or the college&apos;s legal-aid/incubation cell.
         </div>
 

@@ -130,9 +130,9 @@ export default function AdminDashboard() {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8 text-slate-100">Admin Dashboard</h1>
-        <div className="glass-card skeleton h-32 w-full rounded-2xl mb-8"></div>
+        <div className="glass-card skeleton h-32 w-full rounded-lg mb-8"></div>
         <div className="space-y-4">
-          {[1,2,3].map(i => <div key={i} className="glass-card skeleton h-24 w-full rounded-xl"></div>)}
+          {[1,2,3].map(i => <div key={i} className="glass-card skeleton h-24 w-full rounded-lg"></div>)}
         </div>
       </div>
     );
@@ -150,19 +150,19 @@ export default function AdminDashboard() {
         </div>
         
         <div className="flex gap-4">
-          <div className="glass-card px-4 py-2 rounded-xl text-center">
+          <div className="glass-card px-4 py-2 rounded-lg text-center">
             <div className="text-xl font-bold text-amber-400">{stats.pending}</div>
-            <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Pending</div>
+            <div className="text-xs text-slate-400 font-semibold">Pending</div>
           </div>
-          <div className="glass-card px-4 py-2 rounded-xl text-center">
+          <div className="glass-card px-4 py-2 rounded-lg text-center">
             <div className="text-xl font-bold text-red-400">{stats.confirmed}</div>
-            <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Confirmed</div>
+            <div className="text-xs text-slate-400 font-semibold">Confirmed</div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 mb-6 p-1 bg-slate-800/50 rounded-xl inline-flex">
+      <div className="flex space-x-1 mb-6 p-1 bg-slate-800/50 rounded-lg inline-flex">
         {(['pending', 'confirmed', 'dismissed'] as const).map((tab) => (
           <button
             key={tab}
@@ -186,14 +186,14 @@ export default function AdminDashboard() {
       {/* Reports List */}
       <div className="space-y-4">
         {filteredReports.length === 0 ? (
-          <div className="glass-card p-12 text-center rounded-2xl">
+          <div className="glass-card p-12 text-center rounded-lg">
             <svg className="w-16 h-16 text-slate-500 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <h3 className="text-xl font-semibold text-slate-300 mb-2">No {activeTab} reports</h3>
-            <p className="text-slate-500">You&apos;re all caught up!</p>
+            <p className="text-slate-500">No pending reports.</p>
           </div>
         ) : (
           filteredReports.map((report) => (
-            <div key={report.id} className="glass-card rounded-xl p-6 border-l-4 border-l-transparent hover:border-l-brand-500 transition-all duration-200">
+            <div key={report.id} className="glass-card rounded-lg p-6 border-l-4 border-l-transparent hover:border-l-brand-500">
               <div className="flex flex-col lg:flex-row gap-6">
                 
                 {/* Info Column */}

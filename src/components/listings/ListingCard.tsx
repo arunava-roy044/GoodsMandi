@@ -33,7 +33,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
   return (
     <Link href={`/listings/${listing.id}`} className="block group">
-      <div className="glass-card-hover rounded-2xl overflow-hidden bg-slate-900 border border-white/10 h-full flex flex-col transition-all duration-300 hover:border-emerald-500/30 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)]">
+      <div className="rounded-lg overflow-hidden bg-slate-900 border border-slate-800 h-full flex flex-col transition-colors duration-150 group-hover:border-slate-600">
         {/* Image Section */}
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800">
           {firstPhoto ? (
@@ -41,41 +41,37 @@ export default function ListingCard({ listing }: ListingCardProps) {
               src={firstPhoto}
               alt={listing.title}
               fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              className="object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+            <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
               <svg className="w-12 h-12 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
           )}
           
-          {/* Overlays */}
-          <div className="absolute top-3 left-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-md ${categoryColor} border border-white/10`}>
+          <div className="absolute top-2 left-2">
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${categoryColor} border border-slate-700`}>
               {listing.category}
-            </span>
-          </div>
-          
-          <div className="absolute bottom-3 right-3">
-            <span className="px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg">
-              {formatPrice(listing.asking_price)}
             </span>
           </div>
         </div>
 
         {/* Content Section */}
-        <div className="p-5 flex flex-col flex-grow">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-lg text-white line-clamp-1 group-hover:text-emerald-400 transition-colors">
+        <div className="p-4 flex flex-col flex-grow">
+          <div className="flex justify-between items-start gap-3 mb-2">
+            <h3 className="font-medium text-base text-white line-clamp-1">
               {listing.title}
             </h3>
+            <span className="text-base font-semibold text-white whitespace-nowrap">
+              {formatPrice(listing.asking_price)}
+            </span>
           </div>
           
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-white/5">
+            <span className="text-xs text-slate-400">
               {listing.product_age}
             </span>
             <span className="text-xs text-slate-500">•</span>
@@ -84,13 +80,13 @@ export default function ListingCard({ listing }: ListingCardProps) {
             </span>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+          <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-700 relative">
                 {listing.seller?.profile_photo_url ? (
                   <Image src={listing.seller.profile_photo_url} alt={listing.seller.name} fill className="object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-white font-bold bg-emerald-600">
+                  <div className="w-full h-full flex items-center justify-center text-xs text-white font-bold bg-slate-700">
                     {listing.seller?.name?.charAt(0) || '?'}
                   </div>
                 )}

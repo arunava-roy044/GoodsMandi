@@ -6,8 +6,8 @@ import { ToastProvider } from '@/components/ui/Toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'GoodsMandi — Campus Marketplace',
-  description: 'The exclusive marketplace for campus buying and selling',
+  title: 'GoodsMandi | Buy and sell at UPES',
+  description: 'A marketplace for UPES students to buy and sell secondhand books, electronics, cycles and room essentials.',
 }
 
 export default function RootLayout({

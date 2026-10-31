@@ -27,10 +27,9 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
       {/* Profile Header */}
-      <div className="glass-card rounded-2xl p-8 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+      <div className="glass-card rounded-lg p-8 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
         
-        <div className="w-32 h-32 rounded-full bg-slate-800 border-4 border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center z-10 shadow-xl">
+        <div className="w-32 h-32 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center z-10">
           {profile.profile_photo_url ? (
             <img src={profile.profile_photo_url} alt={profile.name} className="w-full h-full object-cover" />
           ) : (
@@ -64,13 +63,13 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
           </div>
 
           <div className="flex justify-center md:justify-start gap-4">
-            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
               <div className="text-2xl font-bold text-white">{profile.total_items_sold || 0}</div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Items Sold</div>
+              <div className="text-xs text-slate-400 font-semibold">Items Sold</div>
             </div>
-            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+            <div className="text-center bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
               <div className="text-2xl font-bold text-brand-400">{activeListings?.length || 0}</div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Active Listings</div>
+              <div className="text-xs text-slate-400 font-semibold">Active Listings</div>
             </div>
           </div>
         </div>
@@ -94,10 +93,10 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
         {activeListings && activeListings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeListings.map(listing => (
-              <Link key={listing.id} href={`/listings/${listing.id}`} className="block glass-card glass-card-hover rounded-xl overflow-hidden transition-all group flex flex-col h-full">
+              <Link key={listing.id} href={`/listings/${listing.id}`} className="block glass-card-hover rounded-lg overflow-hidden transition-all group flex flex-col h-full">
                 {listing.photos && listing.photos.length > 0 ? (
                   <div className="h-40 overflow-hidden relative">
-                    <img src={listing.photos[0]} alt={listing.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img src={listing.photos[0]} alt={listing.title} className="w-full h-full object-cover transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent opacity-60"></div>
                   </div>
                 ) : (
@@ -117,7 +116,7 @@ export default async function OtherUserProfilePage({ params }: { params: Promise
             ))}
           </div>
         ) : (
-          <div className="glass-card p-12 text-center rounded-2xl text-slate-400">
+          <div className="glass-card p-12 text-center rounded-lg text-slate-400">
             This user doesn&apos;t have any active listings.
           </div>
         )}

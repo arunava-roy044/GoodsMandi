@@ -71,7 +71,7 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
 
       {/* Seller Banner */}
       {isSeller && (
-        <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-emerald-400">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -87,11 +87,11 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Col: Photos */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/10">
+          <div className="relative aspect-[4/3] w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-800">
             {mainPhoto ? (
               <Image src={mainPhoto} alt={listing.title} fill className="object-contain bg-black/40" sizes="(max-width: 1024px) 100vw, 66vw" />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
                 <svg className="w-20 h-20 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -99,16 +99,16 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
             )}
             
             {isSold && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                <div className="bg-red-500/90 text-white px-8 py-3 rounded-xl font-bold text-2xl tracking-wider uppercase border border-red-400/50 transform -rotate-12">
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                <div className="bg-slate-900 text-white px-5 py-2 rounded-md font-semibold text-lg border border-slate-700">
                   Sold
                 </div>
               </div>
             )}
 
             {isRemoved && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                <div className="bg-slate-500/90 text-white px-8 py-3 rounded-xl font-bold text-2xl tracking-wider uppercase border border-slate-400/50 transform -rotate-12">
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                <div className="bg-slate-900 text-slate-300 px-5 py-2 rounded-md font-semibold text-lg border border-slate-700">
                   Removed
                 </div>
               </div>
@@ -119,7 +119,7 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
           {listing.photos && listing.photos.length > 1 && (
             <div className="grid grid-cols-5 gap-4">
               {listing.photos.map((photo: string, idx: number) => (
-                <div key={idx} className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 ${idx === 0 ? 'border-emerald-500' : 'border-transparent hover:border-slate-500'}`}>
+                <div key={idx} className={`relative aspect-square rounded-md overflow-hidden cursor-pointer border-2 ${idx === 0 ? 'border-emerald-500' : 'border-transparent hover:border-slate-500'}`}>
                   <Image src={photo} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" sizes="20vw" />
                 </div>
               ))}
@@ -129,20 +129,20 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
 
         {/* Right Col: Details */}
         <div className="space-y-6">
-          <div className="glass-card p-6 rounded-2xl">
+          <div className="glass-card p-6 rounded-lg">
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border border-white/10 ${categoryColor}`}>
+              <span className={`px-2 py-0.5 rounded text-xs font-medium border border-slate-700 ${categoryColor}`}>
                 {listing.category}
               </span>
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-white/5">
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-900 text-slate-300 border border-slate-700">
                 {listing.product_age}
               </span>
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{listing.title}</h1>
+            <h1 className="text-2xl font-semibold text-white mb-2">{listing.title}</h1>
             <div className="text-sm text-slate-400 mb-6">Listed {timeAgo(listing.created_at)}</div>
 
-            <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 mb-6">
+            <div className="text-3xl font-semibold text-white mb-6">
               {formatPrice(listing.asking_price)}
             </div>
 
@@ -153,12 +153,12 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
             
             {!currentUserId && authChecked && !isSold && !isRemoved && (
               <Link href="/login" className="btn-primary w-full block text-center">
-                Log in to Bid
+                Log in to make an offer
               </Link>
             )}
 
             {isSold && (
-              <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 mt-4 text-center">
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 mt-4 text-center">
                 <p className="text-slate-300">This item has been sold to <span className="font-semibold text-white">{listing.winner?.name || 'a buyer'}</span></p>
                 {(currentUserId === listing.selected_bidder_id || isSeller) && (
                   <div className="mt-4 flex gap-3 justify-center">
@@ -173,20 +173,20 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
 
           {/* Seller Card — hide when viewing own listing */}
           {!isSeller && (
-            <div className="glass-card p-6 rounded-2xl">
-              <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">About the Seller</h3>
+            <div className="glass-card p-6 rounded-lg">
+              <h3 className="text-sm font-medium text-slate-400 mb-4">Seller</h3>
               <Link href={`/profile/${listing.seller.id}`} className="flex items-center gap-4 group">
-                <div className="relative w-14 h-14 rounded-full overflow-hidden bg-slate-700 ring-2 ring-transparent group-hover:ring-emerald-500 transition-all">
+                <div className="relative w-14 h-14 rounded-full overflow-hidden bg-slate-700 border border-slate-700">
                   {listing.seller.profile_photo_url ? (
                     <Image src={listing.seller.profile_photo_url} alt={listing.seller.name} fill className="object-cover" sizes="56px" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white bg-teal-600">
+                    <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white bg-slate-700">
                       {listing.seller.name.charAt(0)}
                     </div>
                   )}
                 </div>
                 <div>
-                  <div className="font-semibold text-lg text-white group-hover:text-emerald-400 transition-colors">
+                  <div className="font-semibold text-lg text-white group-hover:underline">
                     {listing.seller.name}
                   </div>
                   <div className="flex items-center gap-3 text-sm mt-1">
@@ -207,8 +207,8 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
 
           {/* Description */}
           {listing.description && (
-            <div className="glass-card p-6 rounded-2xl">
-              <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wider">Description</h3>
+            <div className="glass-card p-6 rounded-lg">
+              <h3 className="text-sm font-medium text-slate-400 mb-3">Description</h3>
               <p className="text-slate-300 whitespace-pre-line leading-relaxed">
                 {listing.description}
               </p>

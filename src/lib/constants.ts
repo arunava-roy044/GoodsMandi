@@ -69,22 +69,14 @@ export const PROHIBITED_KEYWORDS = [
   'pharmaceutical', 'prescription', 'controlled substance',
 ];
 
-// Category icons mapping
-export const CATEGORY_ICONS: Record<ListingCategory, string> = {
-  'Books & Study Material': '📚',
-  'Electronics & Gadgets': '💻',
-  'Furniture & Room Essentials': '🪑',
-  'Cycles & Transport': '🚲',
-  'Appliances': '🔌',
-  'Clothing & Misc': '👕',
-};
+// Category tag style. One neutral style for every category keeps the cards calm.
+const CATEGORY_TAG = 'bg-slate-900 text-slate-300';
 
-// Category colors mapping
 export const CATEGORY_COLORS: Record<ListingCategory, string> = {
-  'Books & Study Material': 'from-blue-500/20 to-indigo-500/20 border-blue-500/30 text-blue-400',
-  'Electronics & Gadgets': 'from-purple-500/20 to-violet-500/20 border-purple-500/30 text-purple-400',
-  'Furniture & Room Essentials': 'from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-400',
-  'Cycles & Transport': 'from-green-500/20 to-emerald-500/20 border-green-500/30 text-green-400',
-  'Appliances': 'from-cyan-500/20 to-teal-500/20 border-cyan-500/30 text-cyan-400',
-  'Clothing & Misc': 'from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-400',
+  'Books & Study Material': CATEGORY_TAG,
+  'Electronics & Gadgets': CATEGORY_TAG,
+  'Furniture & Room Essentials': CATEGORY_TAG,
+  'Cycles & Transport': CATEGORY_TAG,
+  'Appliances': CATEGORY_TAG,
+  'Clothing & Misc': CATEGORY_TAG,
 };

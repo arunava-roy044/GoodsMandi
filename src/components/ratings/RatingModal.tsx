@@ -67,15 +67,15 @@ export default function RatingModal({ listingId, ratedUserId, ratedUserName, isO
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-      <div className="glass-card w-full max-w-md rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+      <div className="glass-card w-full max-w-md rounded-lg p-6 shadow-2xl relative overflow-hidden">
         {success ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Rating Submitted</h3>
-            <p className="text-slate-400">Thank you for your feedback!</p>
+            <p className="text-slate-400">Thanks, your rating has been saved.</p>
           </div>
         ) : (
           <>
@@ -96,7 +96,7 @@ export default function RatingModal({ listingId, ratedUserId, ratedUserName, isO
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
                   onClick={() => setRating(star)}
-                  className="p-1 focus:outline-none transition-transform hover:scale-110"
+                  className="p-1 focus:outline-none transition-transform"
                 >
                   <svg 
                     className={`w-10 h-10 transition-colors ${

@@ -104,7 +104,7 @@ export default function ChatListPage() {
         <h1 className="text-3xl font-bold mb-8 text-slate-100">Your Conversations</h1>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="glass-card skeleton h-24 w-full rounded-xl"></div>
+            <div key={i} className="glass-card skeleton h-24 w-full rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function ChatListPage() {
       <h1 className="text-3xl font-bold mb-8 text-slate-100">Your Conversations</h1>
       
       {fetchError ? (
-        <div className="glass-card p-12 text-center rounded-2xl flex flex-col items-center">
+        <div className="glass-card p-12 text-center rounded-lg flex flex-col items-center">
           <svg className="w-16 h-16 text-red-500/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
@@ -125,7 +125,7 @@ export default function ChatListPage() {
           <p className="text-xs text-slate-600">{fetchError}</p>
         </div>
       ) : conversations.length === 0 ? (
-        <div className="glass-card p-12 text-center rounded-2xl flex flex-col items-center">
+        <div className="glass-card p-12 text-center rounded-lg flex flex-col items-center">
           <svg className="w-16 h-16 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -139,7 +139,7 @@ export default function ChatListPage() {
             <Link 
               key={`${conv.listing_id}_${conv.other_user_id}`} 
               href={`/chat/${conv.listing_id}/${conv.other_user_id}`}
-              className="block glass-card glass-card-hover rounded-xl p-4 transition-all duration-200"
+              className="block glass-card-hover rounded-lg p-4"
             >
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-700">

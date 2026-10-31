@@ -18,9 +18,9 @@ export default function BidModalController({ listing }: BidModalControllerProps)
     <>
       <button 
         onClick={() => setIsModalOpen(true)}
-        className="btn-primary w-full text-lg shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)]"
+        className="btn-primary w-full"
       >
-        Place Bid
+        Make an offer
       </button>
       <BidModal 
         isOpen={isModalOpen} 
