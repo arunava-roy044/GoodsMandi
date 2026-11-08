@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { formatPrice } from '@/lib/utils';
 
 export default async function OwnProfilePage() {
   const supabase = await createClient();
@@ -33,7 +34,7 @@ export default async function OwnProfilePage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Profile Header */}
       <div className="glass-card rounded-lg p-8 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden">
         
@@ -88,10 +89,10 @@ export default async function OwnProfilePage() {
         </div>
 
         <div className="md:ml-auto z-10 flex flex-col items-center md:items-end gap-3">
-          <button className="btn-secondary whitespace-nowrap flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-            Edit Profile
-          </button>
+          <Link href="/profile/settings" className="btn-secondary whitespace-nowrap flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            Settings
+          </Link>
           
           {profile.warning_count === 0 ? (
             <div className="text-xs text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
@@ -123,7 +124,7 @@ export default async function OwnProfilePage() {
               {activeListings.slice(0, 3).map(listing => (
                 <Link key={listing.id} href={`/listings/${listing.id}`} className="block glass-card-hover rounded-lg p-4">
                   <div className="font-semibold text-slate-200 mb-1">{listing.title}</div>
-                  <div className="text-sm text-brand-400 font-medium">₹{listing.asking_price}</div>
+                  <div className="text-sm text-brand-400 font-medium">{formatPrice(listing.asking_price)}</div>
                 </Link>
               ))}
             </div>
@@ -138,7 +139,7 @@ export default async function OwnProfilePage() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
             <svg className="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            My Bids
+            My Offers
           </h2>
           
           {userBids && userBids.length > 0 ? (
@@ -146,11 +147,12 @@ export default async function OwnProfilePage() {
               {userBids.slice(0, 5).map(bid => (
                 <div key={bid.id} className="glass-card rounded-lg p-4 flex justify-between items-center">
                   <div>
-                    <div className="font-medium text-slate-200 mb-1">{bid.listing?.title || 'Unknown Listing'}</div>
-                    <div className="text-sm font-semibold text-slate-300">Bid: ₹{bid.bid_amount}</div>
+                    <div className="font-medium text-slate-200 mb-1">{bid.listing?.title || 'Listing no longer available'}</div>
+                    <div className="text-sm font-semibold text-slate-300">Your offer: {formatPrice(bid.bid_amount)}</div>
                   </div>
                   <div>
-                    {bid.status === 'accepted' && <span className="badge-success">Accepted</span>}
+                    {bid.status === 'selected' && <span className="badge-success">Accepted</span>}
+                    {bid.status === 'backup' && <span className="badge-info">Backup buyer</span>}
                     {bid.status === 'rejected' && <span className="badge-danger">Rejected</span>}
                     {bid.status === 'pending' && <span className="badge-warning">Pending</span>}
                   </div>
@@ -159,7 +161,7 @@ export default async function OwnProfilePage() {
             </div>
           ) : (
             <div className="glass-card p-6 text-center rounded-lg text-slate-400">
-              You haven&apos;t placed any bids yet.
+              You haven&apos;t made any offers yet.
             </div>
           )}
         </div>

@@ -2,74 +2,48 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
-import { useToast } from '@/components/ui/Toast'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const userMenuRef = useRef<HTMLDivElement>(null)
-  const mobileMenuRef = useRef<HTMLElement>(null)
+  const navRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-  const { showToast } = useToast()
+  const [supabase] = useState(() => createClient())
 
+  // Re-check on navigation so a new profile photo shows up after saving settings
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        // Fetch profile to check if admin
-        const { data } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single()
-        
-        if (data?.is_admin) {
-          setIsAdmin(true)
-        }
-      }
+    const loadPhoto = async (userId: string) => {
+      const { data } = await supabase.from('profiles').select('profile_photo_url').eq('id', userId).single()
+      setPhotoUrl(data?.profile_photo_url ?? null)
     }
-    
-    fetchUser()
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      if (user) loadPhoto(user.id)
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (!session?.user) setIsAdmin(false)
+      if (!session?.user) setPhotoUrl(null)
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase, pathname])
 
+  // Close the mobile menu when tapping outside the navbar
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false)
-      }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setMobileMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      showToast(error.message, 'error')
-    } else {
-      showToast('Logged out', 'success')
-      setUserMenuOpen(false)
-      router.push('/login')
-    }
-  }
 
   const navLinks = [
     { name: 'Home', href: '/', exact: true },
@@ -85,8 +59,26 @@ export default function Navbar() {
     return pathname.startsWith(link.href)
   }
 
+  const onProfile = pathname === '/profile' || pathname.startsWith('/profile/settings')
+  const initial = user?.email?.charAt(0).toUpperCase() || 'U'
+
+  const avatar = (
+    <span
+      className={`h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20 text-sm text-emerald-400 flex items-center justify-center border ${
+        onProfile ? 'border-emerald-400' : 'border-emerald-500/50'
+      }`}
+    >
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initial
+      )}
+    </span>
+  )
+
   return (
-    <nav ref={mobileMenuRef} className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
+    <nav ref={navRef} className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
@@ -111,68 +103,35 @@ export default function Navbar() {
               </div>
             </div>
           </div>
-          <div className="hidden md:block">
-            <div className="ml-4 flex items-center md:ml-6">
-              {user ? (
-                <div ref={userMenuRef} className="relative ml-3">
-                  <div>
-                    <button
-                      onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex max-w-xs items-center rounded-full bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                    >
-                      <span className="sr-only">Open user menu</span>
-                      <div className="h-8 w-8 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center border border-emerald-500/50">
-                        {user.email?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                    </button>
-                  </div>
-                  {userMenuOpen && (
-                    <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg bg-slate-900 border border-slate-700 py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Profile
-                      </Link>
-                      <Link
-                        href="/listings/my"
-                        className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        My Listings
-                      </Link>
-                      {isAdmin && (
-                        <Link
-                          href="/admin"
-                          className="block px-4 py-2 text-sm text-emerald-400 hover:bg-white/5"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          Admin Dashboard
-                        </Link>
-                      )}
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex space-x-4">
-                  <Link href="/login" className="btn-ghost px-4 py-2 text-sm">
-                    Log in
-                  </Link>
-                  <Link href="/signup" className="btn-primary px-4 py-2 text-sm">
-                    Sign up
-                  </Link>
-                </div>
-              )}
-            </div>
+
+          <div className="hidden md:flex items-center ml-6">
+            {user ? (
+              <Link
+                href="/profile"
+                aria-label="Your profile"
+                title="Your profile"
+                className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              >
+                {avatar}
+              </Link>
+            ) : (
+              <div className="flex space-x-4">
+                <Link href="/login" className="btn-ghost px-4 py-2 text-sm">
+                  Log in
+                </Link>
+                <Link href="/signup" className="btn-primary px-4 py-2 text-sm">
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
-          <div className="-mr-2 flex md:hidden">
+
+          <div className="-mr-2 flex items-center gap-1 md:hidden">
+            {user && (
+              <Link href="/profile" aria-label="Your profile" className="p-1.5" onClick={() => setMobileMenuOpen(false)}>
+                {avatar}
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
@@ -211,67 +170,12 @@ export default function Navbar() {
               </Link>
             ))}
           </div>
-          {user ? (
-            <div className="border-t border-white/10 pb-3 pt-4">
-              <div className="flex items-center px-5">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center border border-emerald-500/50">
-                    {user.email?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <div className="text-sm font-medium leading-none text-slate-400">{user.email}</div>
-                </div>
-              </div>
-              <div className="mt-3 space-y-1 px-2">
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-base font-medium text-slate-400 hover:bg-white/5 hover:text-white"
-                >
-                  Profile
-                </Link>
-                <Link
-                  href="/listings/my"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-base font-medium text-slate-400 hover:bg-white/5 hover:text-white"
-                >
-                  My Listings
-                </Link>
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-md px-3 py-2 text-base font-medium text-emerald-400 hover:bg-white/5"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    handleLogout()
-                    setMobileMenuOpen(false)
-                  }}
-                  className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-red-400 hover:bg-white/5"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          ) : (
+          {!user && (
             <div className="border-t border-white/10 pb-3 pt-4 px-5 flex flex-col space-y-3">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-secondary w-full text-center"
-              >
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="btn-secondary w-full text-center">
                 Log in
               </Link>
-              <Link
-                href="/signup"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-primary w-full text-center"
-              >
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="btn-primary w-full text-center">
                 Sign up
               </Link>
             </div>
