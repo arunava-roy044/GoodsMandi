@@ -95,6 +95,7 @@ export default function SignupPage() {
           <input
             type="text"
             value={fullName}
+            maxLength={60}
             onChange={(e) => setFullName(e.target.value)}
             className="input-field w-full"
             placeholder="John Doe"
@@ -165,6 +166,7 @@ export default function SignupPage() {
             <input
               type="text"
               value={branchCourse}
+              maxLength={60}
               onChange={(e) => setBranchCourse(e.target.value)}
               className="input-field w-full"
               placeholder="e.g. B.Tech CSE"
