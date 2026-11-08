@@ -24,7 +24,8 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!email.endsWith('@stu.upes.ac.in')) {
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail.endsWith('@stu.upes.ac.in')) {
       showToast('Registration is restricted to UPES students (@stu.upes.ac.in)', 'error')
       return
     }
@@ -38,13 +39,13 @@ export default function SignupPage() {
 
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: fullName.trim(),
             year_of_study: parseInt(yearOfStudy),
-            branch_course: branchCourse,
+            branch_course: branchCourse.trim(),
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         }

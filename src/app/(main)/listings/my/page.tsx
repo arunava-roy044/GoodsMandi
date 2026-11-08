@@ -10,7 +10,7 @@ export default async function MyListingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/');
+    redirect('/login?next=/listings/my');
   }
 
   const { data: rawListings } = await supabase
@@ -28,14 +28,14 @@ export default async function MyListingsPage() {
   }) ?? null;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100">My Listings</h1>
+          <h1 className="text-2xl font-semibold text-white">My listings</h1>
           <p className="text-slate-400 mt-1">Manage your active, sold, and removed items</p>
         </div>
         <Link href="/listings/create" className="btn-primary">
-          List New Item
+          Sell an item
         </Link>
       </div>
 
@@ -47,7 +47,7 @@ export default async function MyListingsPage() {
           <h2 className="text-2xl font-semibold text-slate-200 mb-3">You haven&apos;t listed any items yet</h2>
           <p className="text-slate-400 mb-8 max-w-md mx-auto">Declutter your room and make some extra cash by selling textbooks, electronics, or dorm essentials.</p>
           <Link href="/listings/create" className="btn-primary px-8">
-            Create First Listing
+            Sell an item
           </Link>
         </div>
       ) : (
@@ -72,7 +72,7 @@ export default async function MyListingsPage() {
                 {/* Status Badge */}
                 <div className="absolute top-3 right-3">
                   {listing.status === 'active' && <span className="badge-success shadow-lg">Active</span>}
-                  {listing.status === 'sold' && <span className="badge-warning shadow-lg text-amber-900 bg-amber-400">Sold</span>}
+                  {listing.status === 'sold' && <span className="badge shadow-lg text-amber-950 bg-amber-400">Sold</span>}
                   {listing.status === 'removed' && <span className="badge-danger shadow-lg">Removed</span>}
                 </div>
               </div>
