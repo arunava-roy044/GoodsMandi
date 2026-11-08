@@ -1,299 +1,306 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   LISTING_CATEGORIES,
+  MIN_BID_PERCENTAGE,
   PRODUCT_AGE_BRACKETS,
   PRODUCT_AGE_CUSTOM_MAX_LENGTH,
   PRODUCT_AGE_OTHER,
   PROHIBITED_KEYWORDS,
 } from '@/lib/constants';
 import PhotoUpload from '@/components/listings/PhotoUpload';
-import { errorMessage } from '@/lib/utils'
+import { errorMessage, formatPrice } from '@/lib/utils';
 
+const TITLE_MIN = 3;
+const TITLE_MAX = 80;
 const DESCRIPTION_MAX = 300;
+const PRICE_MAX = 500000;
+const PHOTO_BUCKET = 'listing-photos';
+
+// Whole-word match, so "drum" doesn't trip "rum" and "begun" doesn't trip "gun"
+function findFlaggedWords(text: string): string[] {
+  const lower = text.toLowerCase();
+  return PROHIBITED_KEYWORDS.filter((keyword) => {
+    const escaped = keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}s?\\b`).test(lower);
+  });
+}
+
+function fileExtension(file: File): string {
+  const fromName = file.name.includes('.') ? file.name.split('.').pop() : '';
+  const fromType = file.type.split('/')[1];
+  return (fromName || fromType || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+}
+
+function chipClass(active: boolean) {
+  return `px-3 py-2 rounded-md border text-sm text-left transition-colors ${
+    active
+      ? 'border-brand-500 bg-brand-500/10 text-white'
+      : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500 hover:text-white'
+  }`;
+}
 
 export default function CreateListingPage() {
   const router = useRouter();
+  const topRef = useRef<HTMLDivElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<string>(LISTING_CATEGORIES[0]);
+  const [category, setCategory] = useState<string>('');
   const [askingPrice, setAskingPrice] = useState('');
-  const [productAge, setProductAge] = useState<string>(PRODUCT_AGE_BRACKETS[0]);
+  const [productAge, setProductAge] = useState<string>('');
   const [customProductAge, setCustomProductAge] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
+  // Words the seller has already been warned about and chose to keep
+  const [acknowledgedWords, setAcknowledgedWords] = useState<string | null>(null);
 
-  const validateForm = () => {
-    setError(null);
-    setWarning(null);
+  const price = Number(askingPrice);
+  const priceIsValid = askingPrice !== '' && Number.isInteger(price) && price > 0 && price <= PRICE_MAX;
+  const flaggedWords = findFlaggedWords(`${title} ${description}`);
+  const flaggedKey = flaggedWords.join(',');
 
-    if (photos.length === 0) {
-      setError('At least one photo is required.');
-      return false;
-    }
-    if (title.length < 3) {
-      setError('Title must be at least 3 characters long.');
-      return false;
-    }
-    const price = Number(askingPrice);
-    if (isNaN(price) || price <= 0) {
-      setError('Asking price must be greater than 0.');
-      return false;
-    }
+  const showError = (message: string): false => {
+    setError(message);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return false;
+  };
 
-    if (productAge === PRODUCT_AGE_OTHER) {
-      const customAge = customProductAge.trim();
-      if (customAge.length === 0) {
-        setError('Please type the product age.');
-        return false;
-      }
-      if (customAge.length > PRODUCT_AGE_CUSTOM_MAX_LENGTH) {
-        setError(`Product age must be at most ${PRODUCT_AGE_CUSTOM_MAX_LENGTH} characters.`);
-        return false;
-      }
+  const validate = (): boolean => {
+    if (photos.length === 0) return showError('Add at least one photo.');
+    if (title.trim().length < TITLE_MIN) return showError(`Give your item a title of at least ${TITLE_MIN} characters.`);
+    if (!category) return showError('Pick a category.');
+    if (!priceIsValid) return showError(`Enter a price in whole rupees, between ₹1 and ${formatPrice(PRICE_MAX)}.`);
+    if (!productAge) return showError('Pick how old the item is.');
+    if (productAge === PRODUCT_AGE_OTHER && customProductAge.trim().length === 0) {
+      return showError('Type how old the item is.');
     }
-
-    const textToCheck = `${title} ${description}`.toLowerCase();
-    const hasProhibited = PROHIBITED_KEYWORDS.some(keyword => textToCheck.includes(keyword.toLowerCase()));
-    
-    if (hasProhibited) {
-      setWarning('Your listing contains words that might violate community guidelines. It may be reviewed.');
-    }
-
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    setError(null);
+    if (!validate()) return;
+
+    // Ask once before publishing a listing with flagged words
+    if (flaggedWords.length > 0 && acknowledgedWords !== flaggedKey) {
+      setAcknowledgedWords(flaggedKey);
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
 
     setLoading(true);
     const supabase = createClient();
+    const uploadedPaths: string[] = [];
 
     try {
+      setStatus('Checking your account...');
       const { data: userData, error: authError } = await supabase.auth.getUser();
-      if (authError || !userData.user) throw new Error('Not authenticated');
+      if (authError || !userData.user) throw new Error('Your session has expired. Log in again to post.');
+      const userId = userData.user.id;
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('banned')
-        .eq('id', userData.user.id)
-        .single();
+      const { data: profile } = await supabase.from('profiles').select('banned').eq('id', userId).single();
+      if (profile?.banned) throw new Error('Your account is restricted from creating listings.');
 
-      if (profile?.banned) {
-        throw new Error('Your account is restricted from creating listings.');
-      }
-
-      // Upload photos
       const photoUrls: string[] = [];
-      for (const file of photos) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `${userData.user.id}/${fileName}`;
-
+      for (const [index, file] of photos.entries()) {
+        setStatus(`Uploading photo ${index + 1} of ${photos.length}...`);
+        const filePath = `${userId}/${crypto.randomUUID()}.${fileExtension(file)}`;
         const { error: uploadError } = await supabase.storage
-          .from('listing-photos')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from('listing-photos')
-          .getPublicUrl(filePath);
-          
-        photoUrls.push(publicUrlData.publicUrl);
+          .from(PHOTO_BUCKET)
+          .upload(filePath, file, { contentType: file.type || undefined });
+        if (uploadError) throw new Error(`Photo ${index + 1} didn't upload: ${uploadError.message}`);
+        uploadedPaths.push(filePath);
+        photoUrls.push(supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filePath).data.publicUrl);
       }
 
-      // Insert listing
+      setStatus('Publishing...');
       const { data: newListing, error: insertError } = await supabase
         .from('listings')
         .insert({
-          title,
+          title: title.trim(),
           description: description.trim() || null,
           category,
-          asking_price: Number(askingPrice),
+          asking_price: price,
           product_age: productAge === PRODUCT_AGE_OTHER ? customProductAge.trim() : productAge,
           photos: photoUrls,
-          seller_id: userData.user.id,
-          status: 'active'
+          seller_id: userId,
+          status: 'active',
         })
-        .select()
+        .select('id')
         .single();
 
       if (insertError) throw insertError;
 
       router.push(`/listings/${newListing.id}`);
+      router.refresh();
     } catch (err) {
-      setError(errorMessage(err, 'Failed to create listing'));
+      // Don't leave orphaned photos in storage when the listing wasn't created
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from(PHOTO_BUCKET).remove(uploadedPaths);
+      }
+      showError(errorMessage(err, "Couldn't publish your listing. Please try again."));
       setLoading(false);
+      setStatus('');
     }
   };
 
+  const showFlagWarning = flaggedWords.length > 0 && acknowledgedWords === flaggedKey;
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Create New Listing</h1>
-        <p className="text-slate-400">Sell your items to the campus community.</p>
+    <div ref={topRef} className="max-w-2xl mx-auto scroll-mt-24">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-white mb-1">Sell an item</h1>
+        <p className="text-sm text-slate-400">Takes about a minute. Buyers on campus will send you offers.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 glass-card p-6 md:p-8 rounded-lg">
+      <form onSubmit={handleSubmit} noValidate className="glass-card p-5 sm:p-6 space-y-7">
         {error && (
-          <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-start gap-3">
-            <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>{error}</p>
-          </div>
-        )}
-        
-        {warning && (
-          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-start gap-3">
-            <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <p>{warning}</p>
+          <div role="alert" className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
           </div>
         )}
 
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-slate-300">
-            Photos <span className="text-red-400">*</span>
-          </label>
-          <PhotoUpload photos={photos} onChange={setPhotos} />
-        </div>
+        {showFlagWarning && (
+          <div role="alert" className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            Your listing mentions <strong>{flaggedWords.join(', ')}</strong>, which may break the{' '}
+            <Link href="/terms" className="underline">community rules</Link>. Edit it, or press Publish again to post it
+            anyway. It may be reviewed or removed.
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3 md:col-span-2">
-            <label htmlFor="title" className="block text-sm font-medium text-slate-300">
-              Listing Title <span className="text-red-400">*</span>
-            </label>
+        <fieldset disabled={loading} className="space-y-7">
+          {/* Photos */}
+          <section className="space-y-2">
+            <h2 className="text-sm font-medium text-slate-200">Photos</h2>
+            <p className="text-xs text-slate-500 -mt-1">The first photo is the cover. Clear, well-lit photos sell faster.</p>
+            <PhotoUpload photos={photos} onChange={setPhotos} disabled={loading} />
+          </section>
+
+          {/* Title */}
+          <section className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="title" className="text-sm font-medium text-slate-200">Title</label>
+              <span className="text-xs text-slate-500">{title.length}/{TITLE_MAX}</span>
+            </div>
             <input
               id="title"
               type="text"
-              required
-              placeholder="What are you selling?"
-              className="input-field w-full text-lg"
+              maxLength={TITLE_MAX}
+              placeholder="e.g. Casio fx-991ES Plus calculator"
+              className="input-field"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
-          </div>
+          </section>
 
-          <div className="space-y-3">
-            <label htmlFor="category" className="block text-sm font-medium text-slate-300">
-              Category <span className="text-red-400">*</span>
-            </label>
-            <select
-              id="category"
-              className="input-field w-full bg-slate-900 text-slate-200 border-white/10 appearance-none"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
+          {/* Category */}
+          <section className="space-y-2">
+            <h2 id="category-label" className="text-sm font-medium text-slate-200">Category</h2>
+            <div role="radiogroup" aria-labelledby="category-label" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {LISTING_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat} className="bg-slate-900 text-slate-200">{cat}</option>
+                <button
+                  key={cat}
+                  type="button"
+                  role="radio"
+                  aria-checked={category === cat}
+                  onClick={() => setCategory(cat)}
+                  className={chipClass(category === cat)}
+                >
+                  {cat}
+                </button>
               ))}
-            </select>
-          </div>
+            </div>
+          </section>
 
-          <div className="space-y-3">
-            <label htmlFor="price" className="block text-sm font-medium text-slate-300">
-              Asking Price (₹) <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
+          {/* Price */}
+          <section className="space-y-2">
+            <label htmlFor="price" className="text-sm font-medium text-slate-200">Price</label>
+            <div className="relative sm:w-56">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
               <input
                 id="price"
-                type="number"
-                required
-                min="1"
-                className="input-field w-full pl-8"
-                placeholder="0.00"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="500"
+                className="input-field pl-7"
                 value={askingPrice}
-                onChange={(e) => setAskingPrice(e.target.value)}
+                // Digits only: no decimals, minus signs or scroll-wheel surprises
+                onChange={(e) => setAskingPrice(e.target.value.replace(/\D/g, '').slice(0, 6))}
               />
             </div>
-          </div>
+            <p className="text-xs text-slate-500">
+              {priceIsValid
+                ? `Buyers can offer from ${formatPrice(Math.ceil(price * MIN_BID_PERCENTAGE))} (${Math.round(MIN_BID_PERCENTAGE * 100)}% of your price). You pick which offer to accept.`
+                : `Buyers can offer down to ${Math.round(MIN_BID_PERCENTAGE * 100)}% of your price. You pick which offer to accept.`}
+            </p>
+          </section>
 
-          <div className="space-y-3 md:col-span-2">
-            <label htmlFor="age" className="block text-sm font-medium text-slate-300">
-              Product Age <span className="text-red-400">*</span>
-            </label>
-            <select
-              id="age"
-              className="input-field w-full bg-slate-900 text-slate-200 border-white/10 appearance-none"
-              value={productAge}
-              onChange={(e) => setProductAge(e.target.value)}
-            >
-              {PRODUCT_AGE_BRACKETS.map((age) => (
-                <option key={age} value={age} className="bg-slate-900 text-slate-200">{age}</option>
+          {/* Age */}
+          <section className="space-y-2">
+            <h2 id="age-label" className="text-sm font-medium text-slate-200">How old is it?</h2>
+            <div role="radiogroup" aria-labelledby="age-label" className="flex flex-wrap gap-2">
+              {[...PRODUCT_AGE_BRACKETS, PRODUCT_AGE_OTHER].map((age) => (
+                <button
+                  key={age}
+                  type="button"
+                  role="radio"
+                  aria-checked={productAge === age}
+                  onClick={() => setProductAge(age)}
+                  className={chipClass(productAge === age)}
+                >
+                  {age === PRODUCT_AGE_OTHER ? 'Other' : age}
+                </button>
               ))}
-              <option value={PRODUCT_AGE_OTHER} className="bg-slate-900 text-slate-200">{PRODUCT_AGE_OTHER}</option>
-            </select>
+            </div>
             {productAge === PRODUCT_AGE_OTHER && (
               <input
-                id="custom-age"
                 type="text"
-                required
                 maxLength={PRODUCT_AGE_CUSTOM_MAX_LENGTH}
-                placeholder="Type the product age, e.g. 3 years or 2 weeks"
-                aria-label="Product age"
-                className="input-field w-full"
+                placeholder="e.g. 3 years, or 2 weeks"
+                aria-label="How old is it"
+                className="input-field sm:w-72"
                 value={customProductAge}
                 onChange={(e) => setCustomProductAge(e.target.value)}
+                autoFocus
               />
             )}
-          </div>
+          </section>
 
-          <div className="space-y-3 md:col-span-2">
+          {/* Description */}
+          <section className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <label htmlFor="description" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="description" className="text-sm font-medium text-slate-200">
                 Short description <span className="font-normal text-slate-500">(optional)</span>
               </label>
-              <span className="text-xs text-slate-500">
-                {description.length}/{DESCRIPTION_MAX}
-              </span>
+              <span className="text-xs text-slate-500">{description.length}/{DESCRIPTION_MAX}</span>
             </div>
             <textarea
               id="description"
               rows={3}
               maxLength={DESCRIPTION_MAX}
               placeholder="e.g. Good condition, minor scratches. Can meet near the library after 4 pm."
-              className="input-field w-full resize-none"
+              className="input-field resize-none"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-            ></textarea>
-          </div>
-        </div>
+            />
+          </section>
+        </fieldset>
 
-        <div className="pt-6 border-t border-white/10 flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="btn-ghost px-6"
-            disabled={loading}
-          >
+        <div className="pt-5 border-t border-slate-800 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+          {loading && <span className="text-sm text-slate-400 sm:mr-auto" aria-live="polite">{status}</span>}
+          <Link href="/listings" className={`btn-ghost text-center ${loading ? 'pointer-events-none opacity-50' : ''}`}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="btn-primary px-8"
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Publishing...
-              </span>
-            ) : (
-              'Publish Listing'
-            )}
+          </Link>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Publishing...' : showFlagWarning ? 'Publish anyway' : 'Publish listing'}
           </button>
         </div>
       </form>
