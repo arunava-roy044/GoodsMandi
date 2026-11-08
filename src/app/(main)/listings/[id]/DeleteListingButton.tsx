@@ -3,35 +3,26 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { errorMessage } from '@/lib/utils'
+import { useToast } from '@/components/ui/Toast';
+import { errorMessage } from '@/lib/utils';
 
-interface DeleteListingButtonProps {
-  listingId: string;
-}
-
-export default function DeleteListingButton({ listingId }: DeleteListingButtonProps) {
+export default function DeleteListingButton({ listingId }: { listingId: string }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
     setLoading(true);
     try {
-      // Soft delete: set status to 'removed' to preserve bid/chat history
-      const { error } = await supabase
-        .from('listings')
-        .update({ status: 'removed' })
-        .eq('id', listingId);
-
+      // Soft delete: keeps offers and chats for both sides
+      const { error } = await createClient().from('listings').update({ status: 'removed' }).eq('id', listingId);
       if (error) throw error;
-
+      showToast('Listing removed', 'success');
       router.push('/listings/my');
       router.refresh();
     } catch (err) {
-      console.error('Error removing listing:', errorMessage(err));
-      alert('Failed to remove listing. Please try again.');
-    } finally {
+      showToast(errorMessage(err, "Couldn't remove the listing. Please try again."), 'error');
       setLoading(false);
       setShowConfirm(false);
     }
@@ -39,20 +30,13 @@ export default function DeleteListingButton({ listingId }: DeleteListingButtonPr
 
   if (showConfirm) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-400">Are you sure?</span>
-        <button
-          onClick={handleDelete}
-          disabled={loading}
-          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Removing…' : 'Yes, Remove'}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-slate-300">Remove this listing?</span>
+        <button type="button" onClick={handleDelete} disabled={loading} className="btn-danger px-3 py-1.5 text-sm">
+          {loading ? 'Removing...' : 'Yes, remove'}
         </button>
-        <button
-          onClick={() => setShowConfirm(false)}
-          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors"
-        >
-          Cancel
+        <button type="button" onClick={() => setShowConfirm(false)} disabled={loading} className="btn-secondary px-3 py-1.5 text-sm">
+          Keep it
         </button>
       </div>
     );
@@ -60,13 +44,11 @@ export default function DeleteListingButton({ listingId }: DeleteListingButtonPr
 
   return (
     <button
+      type="button"
       onClick={() => setShowConfirm(true)}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+      className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-300 hover:bg-red-500/20"
     >
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-      </svg>
-      Remove Listing
+      Remove listing
     </button>
   );
 }

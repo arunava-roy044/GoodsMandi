@@ -31,12 +31,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-black/60 transition-opacity" 
         onClick={onClose}
         aria-hidden="true"
       />
       
-      <div className="glass-card relative w-full max-w-lg transform overflow-hidden rounded-2xl p-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full animate-[scale-in_0.2s_ease-out]">
+      <div className="glass-card relative w-full max-w-lg transform overflow-hidden rounded-lg p-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full animate-[scale-in_0.2s_ease-out]">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-xl font-semibold text-white">
             {title}

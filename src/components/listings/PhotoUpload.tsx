@@ -1,142 +1,148 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import Image from 'next/image';
+import { useEffect, useMemo, useState } from 'react';
+import { MAX_PHOTOS_PER_LISTING } from '@/lib/constants';
 
 interface PhotoUploadProps {
   photos: File[];
   onChange: (photos: File[]) => void;
+  disabled?: boolean;
 }
 
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = MAX_PHOTOS_PER_LISTING;
 const MAX_SIZE_MB = 5;
 
-export default function PhotoUpload({ photos, onChange }: PhotoUploadProps) {
+export default function PhotoUpload({ photos, onChange, disabled = false }: PhotoUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
+  // One preview URL per file, created once and released when the file is removed
+  const previews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos]);
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const processFiles = useCallback((files: FileList | File[]) => {
+  const addFiles = (files: FileList | File[]) => {
     setError(null);
-    
-    if (photos.length + files.length > MAX_PHOTOS) {
-      setError(`You can only upload a maximum of ${MAX_PHOTOS} photos.`);
-      return;
-    }
+    const problems: string[] = [];
+    const accepted: File[] = [];
+    const room = MAX_PHOTOS - photos.length;
 
-    const validFiles: File[] = [];
-    const newPhotos = Array.from(files);
-
-    for (const file of newPhotos) {
+    for (const file of Array.from(files)) {
       if (!file.type.startsWith('image/')) {
-        setError('Only image files are allowed.');
-        continue;
+        problems.push(`${file.name} isn't an image.`);
+      } else if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        problems.push(`${file.name} is over ${MAX_SIZE_MB} MB.`);
+      } else if (accepted.length >= room) {
+        problems.push(`Only ${MAX_PHOTOS} photos allowed, so some were left out.`);
+        break;
+      } else {
+        accepted.push(file);
       }
-      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setError(`File ${file.name} is too large. Maximum size is ${MAX_SIZE_MB}MB.`);
-        continue;
-      }
-      validFiles.push(file);
     }
 
-    if (validFiles.length > 0) {
-      onChange([...photos, ...validFiles].slice(0, MAX_PHOTOS));
-    }
-  }, [photos, onChange]);
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
-    }
+    if (accepted.length > 0) onChange([...photos, ...accepted]);
+    if (problems.length > 0) setError(problems.join(' '));
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFiles(e.target.files);
-    }
+  const removePhoto = (index: number) => {
+    setError(null);
+    onChange(photos.filter((_, i) => i !== index));
   };
 
-  const removePhoto = (indexToRemove: number) => {
-    onChange(photos.filter((_, index) => index !== indexToRemove));
+  const makeMain = (index: number) => {
+    const reordered = [...photos];
+    const [chosen] = reordered.splice(index, 1);
+    onChange([chosen, ...reordered]);
   };
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
-          {error}
-        </div>
+    <div className="space-y-3">
+      {photos.length > 0 && (
+        <ul className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          {photos.map((photo, index) => (
+            <li
+              key={previews[index]}
+              className={`relative aspect-square rounded-md overflow-hidden bg-slate-800 border ${
+                index === 0 ? 'border-brand-500' : 'border-slate-700'
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
+              <img src={previews[index]} alt={`Photo ${index + 1}`} className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => removePhoto(index)}
+                disabled={disabled}
+                className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white hover:bg-red-600"
+                aria-label={`Remove photo ${index + 1}`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {index === 0 ? (
+                <span className="absolute bottom-0 inset-x-0 bg-brand-600 py-0.5 text-center text-[11px] font-medium text-white">
+                  Cover
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => makeMain(index)}
+                  disabled={disabled}
+                  className="absolute bottom-0 inset-x-0 bg-black/60 py-0.5 text-center text-[11px] text-white hover:bg-black/80"
+                >
+                  Make cover
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
 
       {photos.length < MAX_PHOTOS && (
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-            isDragging 
-              ? 'border-emerald-500 bg-emerald-500/10' 
-              : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600'
+        <label
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            if (!disabled && e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
+          }}
+          className={`flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed px-4 text-center transition-colors cursor-pointer ${
+            photos.length > 0 ? 'py-4' : 'py-8'
+          } ${
+            isDragging
+              ? 'border-brand-500 bg-brand-500/10'
+              : 'border-slate-700 bg-slate-950 hover:border-slate-500'
           }`}
         >
           <input
             type="file"
             accept="image/*"
             multiple
-            onChange={handleFileInput}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            title="Upload photos"
+            disabled={disabled}
+            className="sr-only"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) addFiles(e.target.files);
+              // Reset so picking the same file again still triggers a change
+              e.target.value = '';
+            }}
           />
-          <div className="flex flex-col items-center gap-2 pointer-events-none">
-            <svg className={`w-10 h-10 ${isDragging ? 'text-emerald-400' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-white font-medium">Click or drag photos here</p>
-            <p className="text-slate-400 text-sm">Upload up to {MAX_PHOTOS} images (max {MAX_SIZE_MB}MB each)</p>
-          </div>
-        </div>
+          <svg className="w-7 h-7 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="text-sm font-medium text-white">
+            {photos.length > 0 ? 'Add more photos' : 'Add photos'}
+          </span>
+          <span className="text-xs text-slate-500">
+            Tap to choose or drag here. Up to {MAX_PHOTOS}, {MAX_SIZE_MB} MB each.
+            {photos.length > 0 && ` ${MAX_PHOTOS - photos.length} left.`}
+          </span>
+        </label>
       )}
 
-      {photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {photos.map((photo, index) => (
-            <div key={`${photo.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden group bg-slate-800 border border-slate-700">
-              <Image
-                src={URL.createObjectURL(photo)}
-                alt={`Preview ${index + 1}`}
-                fill
-                className="object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removePhoto(index)}
-                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              {index === 0 && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-xs text-center text-white py-1">
-                  Main Photo
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm w-full sm:w-auto">
+      <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 z-[110] flex flex-col space-y-2 sm:max-w-sm" role="status" aria-live="polite">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onClose={() => setToasts(t => t.filter(x => x.id !== toast.id))} />
         ))}
@@ -76,16 +76,16 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage, onClose: () => voi
   }
 
   const bgColors = {
-    success: 'bg-emerald-500/10 border-emerald-500/20',
-    error: 'bg-red-500/10 border-red-500/20',
-    info: 'bg-blue-500/10 border-blue-500/20'
+    success: 'bg-slate-900 border-emerald-500/40',
+    error: 'bg-slate-900 border-red-500/40',
+    info: 'bg-slate-900 border-blue-500/40'
   }
 
   return (
     <div
       className={`transform transition-all duration-300 ease-in-out ${
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-      } flex items-center p-4 rounded-xl border backdrop-blur-md shadow-lg ${bgColors[toast.type]}`}
+      } flex items-center p-4 rounded-lg border shadow-lg ${bgColors[toast.type]}`}
     >
       <div className="flex-shrink-0 mr-3">
         {icons[toast.type]}

@@ -2,56 +2,42 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
-import { useToast } from '@/components/ui/Toast'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const userMenuRef = useRef<HTMLDivElement>(null)
-  const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const navRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-  const { showToast } = useToast()
+  const [supabase] = useState(() => createClient())
 
+  // Re-check on navigation so a new profile photo shows up after saving settings
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        // Fetch profile to check if admin
-        const { data } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single()
-        
-        if (data?.is_admin) {
-          setIsAdmin(true)
-        }
-      }
+    const loadPhoto = async (userId: string) => {
+      const { data } = await supabase.from('profiles').select('profile_photo_url').eq('id', userId).single()
+      setPhotoUrl(data?.profile_photo_url ?? null)
     }
-    
-    fetchUser()
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      if (user) loadPhoto(user.id)
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (!session?.user) setPhotoUrl(null)
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase, pathname])
 
+  // Close the mobile menu when tapping outside the navbar
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false)
-      }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setMobileMenuOpen(false)
       }
     }
@@ -59,18 +45,8 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      showToast(error.message, 'error')
-    } else {
-      showToast('Logged out successfully', 'success')
-      setUserMenuOpen(false)
-      router.push('/login')
-    }
-  }
-
   const navLinks = [
+    { name: 'Home', href: '/', exact: true },
     { name: 'Browse', href: '/listings', exact: true },
     { name: 'Sell', href: '/listings/create', exact: true },
     { name: 'Chat', href: '/chat', exact: false },
@@ -83,13 +59,48 @@ export default function Navbar() {
     return pathname.startsWith(link.href)
   }
 
+  // On your own profile the avatar is redundant, so the corner icon becomes Settings
+  const onProfile = pathname === '/profile' || pathname.startsWith('/profile/settings')
+  const onSettings = pathname.startsWith('/profile/settings')
+  const initial = user?.email?.charAt(0).toUpperCase() || 'U'
+
+  const avatar = (
+    <span
+      className={`h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20 text-sm text-emerald-400 flex items-center justify-center border border-emerald-500/50`}
+    >
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initial
+      )}
+    </span>
+  )
+
+  const gear = (
+    <span
+      className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center border transition-colors ${
+        onSettings ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300' : 'border-slate-700 text-slate-300 hover:text-white hover:border-slate-500'
+      }`}
+    >
+      <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </span>
+  )
+
+  const cornerLink = onProfile
+    ? { href: '/profile/settings', label: 'Settings', icon: gear }
+    : { href: '/profile', label: 'Your profile', icon: avatar }
+
   return (
-    <nav className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+    <nav ref={navRef} className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0">
-              <span className="text-xl font-bold gradient-text tracking-tight">GoodsMandi</span>
+              <span className="text-lg font-semibold text-white tracking-tight">GoodsMandi</span>
             </Link>
             <div className="hidden md:block ml-10">
               <div className="flex items-baseline space-x-4">
@@ -109,70 +120,38 @@ export default function Navbar() {
               </div>
             </div>
           </div>
-          <div className="hidden md:block">
-            <div className="ml-4 flex items-center md:ml-6">
-              {user ? (
-                <div ref={userMenuRef} className="relative ml-3">
-                  <div>
-                    <button
-                      onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex max-w-xs items-center rounded-full bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                    >
-                      <span className="sr-only">Open user menu</span>
-                      <div className="h-8 w-8 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center border border-emerald-500/50">
-                        {user.email?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                    </button>
-                  </div>
-                  {userMenuOpen && (
-                    <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl bg-slate-900 border border-slate-700 py-1 shadow-2xl shadow-black/50 ring-1 ring-black ring-opacity-5 focus:outline-none backdrop-blur-none">
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Profile
-                      </Link>
-                      <Link
-                        href="/listings/my"
-                        className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        My Listings
-                      </Link>
-                      {isAdmin && (
-                        <Link
-                          href="/admin"
-                          className="block px-4 py-2 text-sm text-emerald-400 hover:bg-white/5"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          Admin Dashboard
-                        </Link>
-                      )}
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex space-x-4">
-                  <Link href="/login" className="btn-ghost px-4 py-2 text-sm">
-                    Log in
-                  </Link>
-                  <Link href="/signup" className="btn-primary px-4 py-2 text-sm">
-                    Sign up
-                  </Link>
-                </div>
-              )}
-            </div>
+
+          <div className="hidden md:flex items-center ml-6">
+            {user ? (
+              <Link
+                href={cornerLink.href}
+                aria-label={cornerLink.label}
+                title={cornerLink.label}
+                className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              >
+                {cornerLink.icon}
+              </Link>
+            ) : (
+              <div className="flex space-x-4">
+                <Link href="/login" className="btn-ghost px-4 py-2 text-sm">
+                  Log in
+                </Link>
+                <Link href="/signup" className="btn-primary px-4 py-2 text-sm">
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
-          <div className="-mr-2 flex md:hidden">
+
+          <div className="-mr-2 flex items-center gap-1 md:hidden">
+            {user && (
+              <Link href={cornerLink.href} aria-label={cornerLink.label} className="p-1.5" onClick={() => setMobileMenuOpen(false)}>
+                {cornerLink.icon}
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
               className="inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none"
             >
               <span className="sr-only">Open main menu</span>
@@ -191,7 +170,7 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div ref={mobileMenuRef} className="md:hidden glass-card border-t-0">
+        <div className="md:hidden bg-slate-950 border-t border-slate-800">
           <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
             {navLinks.map((link) => (
               <Link
@@ -208,67 +187,12 @@ export default function Navbar() {
               </Link>
             ))}
           </div>
-          {user ? (
-            <div className="border-t border-white/10 pb-3 pt-4">
-              <div className="flex items-center px-5">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center border border-emerald-500/50">
-                    {user.email?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <div className="text-sm font-medium leading-none text-slate-400">{user.email}</div>
-                </div>
-              </div>
-              <div className="mt-3 space-y-1 px-2">
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-base font-medium text-slate-400 hover:bg-white/5 hover:text-white"
-                >
-                  Profile
-                </Link>
-                <Link
-                  href="/listings/my"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-base font-medium text-slate-400 hover:bg-white/5 hover:text-white"
-                >
-                  My Listings
-                </Link>
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-md px-3 py-2 text-base font-medium text-emerald-400 hover:bg-white/5"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    handleLogout()
-                    setMobileMenuOpen(false)
-                  }}
-                  className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-red-400 hover:bg-white/5"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          ) : (
+          {!user && (
             <div className="border-t border-white/10 pb-3 pt-4 px-5 flex flex-col space-y-3">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-ghost w-full justify-center"
-              >
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="btn-secondary w-full text-center">
                 Log in
               </Link>
-              <Link
-                href="/signup"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-primary w-full justify-center"
-              >
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="btn-primary w-full text-center">
                 Sign up
               </Link>
             </div>
