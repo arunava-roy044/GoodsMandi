@@ -155,7 +155,7 @@ export default function ChatThreadPage() {
       setNewMessage((current) => current || text);
       setSendError(
         error?.code === '42501'
-          ? "This listing isn't available any more, so you can't send messages here."
+          ? "You can't send messages in this chat. The listing may be gone, or this person hasn't made an offer or written to you yet."
           : "Message didn't send. Check your connection and try again."
       );
       return;
