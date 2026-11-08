@@ -13,6 +13,8 @@ import {
 import PhotoUpload from '@/components/listings/PhotoUpload';
 import { errorMessage } from '@/lib/utils'
 
+const DESCRIPTION_MAX = 300;
+
 export default function CreateListingPage() {
   const router = useRouter();
   const [photos, setPhotos] = useState<File[]>([]);
@@ -112,7 +114,7 @@ export default function CreateListingPage() {
         .from('listings')
         .insert({
           title,
-          description,
+          description: description.trim() || null,
           category,
           asking_price: Number(askingPrice),
           product_age: productAge === PRODUCT_AGE_OTHER ? customProductAge.trim() : productAge,
@@ -247,13 +249,19 @@ export default function CreateListingPage() {
           </div>
 
           <div className="space-y-3 md:col-span-2">
-            <label htmlFor="description" className="block text-sm font-medium text-slate-300">
-              Description & Availability
-            </label>
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="description" className="block text-sm font-medium text-slate-300">
+                Short description <span className="font-normal text-slate-500">(optional)</span>
+              </label>
+              <span className="text-xs text-slate-500">
+                {description.length}/{DESCRIPTION_MAX}
+              </span>
+            </div>
             <textarea
               id="description"
-              rows={4}
-              placeholder="Describe the condition, reason for selling, and when you are available to meet..."
+              rows={3}
+              maxLength={DESCRIPTION_MAX}
+              placeholder="e.g. Good condition, minor scratches. Can meet near the library after 4 pm."
               className="input-field w-full resize-none"
               value={description}
               onChange={(e) => setDescription(e.target.value)}

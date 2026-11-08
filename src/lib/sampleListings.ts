@@ -6,6 +6,7 @@
 export type SampleListing = {
   id: string;
   title: string;
+  description?: string;
   asking_price: number;
   category: string;
   product_age: string;
@@ -28,6 +29,7 @@ export function getSampleListings(): SampleListing[] {
     {
       id: 'sample-1',
       title: 'Programming and Web textbooks, set of 3',
+      description: 'No highlighting, all pages intact. Selling together only.',
       asking_price: 650,
       category: 'Books & Study Material',
       product_age: '1 year',
@@ -38,6 +40,7 @@ export function getSampleListings(): SampleListing[] {
     {
       id: 'sample-2',
       title: 'Red city cycle, smooth ride, new tyres',
+      description: 'Tyres changed last month. Comes with a lock. Can meet at the main gate.',
       asking_price: 4200,
       category: 'Cycles & Transport',
       product_age: '2 years',
@@ -48,6 +51,7 @@ export function getSampleListings(): SampleListing[] {
     {
       id: 'sample-3',
       title: 'Casio fx-991ES Plus scientific calculator',
+      description: 'Works perfectly, allowed in exams. Cover included.',
       asking_price: 600,
       category: 'Electronics & Gadgets',
       product_age: '6 months',
@@ -68,6 +72,7 @@ export function getSampleListings(): SampleListing[] {
     {
       id: 'sample-5',
       title: 'College backpack, barely used',
+      description: 'Fits a 15 inch laptop. Used for one semester.',
       asking_price: 550,
       category: 'Clothing & Misc',
       product_age: '4 months',
@@ -88,6 +93,7 @@ export function getSampleListings(): SampleListing[] {
     {
       id: 'sample-7',
       title: 'Data Structures notes, 2nd semester',
+      description: 'Handwritten, covers the full syllabus with solved PYQs.',
       asking_price: 150,
       category: 'Books & Study Material',
       product_age: '1 year',

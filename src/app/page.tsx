@@ -30,7 +30,7 @@ async function getHomeData() {
     withTimeout(
       supabase
         .from('listings')
-        .select('id, title, asking_price, category, product_age, photos, created_at, seller:profiles!seller_id(id, name, profile_photo_url, rating_avg)')
+        .select('id, title, description, asking_price, category, product_age, photos, created_at, seller:profiles!seller_id(id, name, profile_photo_url, rating_avg)')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(FEED_SIZE)

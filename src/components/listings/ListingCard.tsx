@@ -15,6 +15,7 @@ type Profile = {
 type Listing = {
   id: string;
   title: string;
+  description?: string | null;
   asking_price: number;
   category: string;
   product_age: string;
@@ -79,6 +80,10 @@ export default function ListingCard({ listing, sample = false }: ListingCardProp
             </span>
           </div>
           
+          {listing.description && (
+            <p className="text-sm text-slate-400 line-clamp-2 mb-2">{listing.description}</p>
+          )}
+
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xs text-slate-400">
               {listing.product_age}
