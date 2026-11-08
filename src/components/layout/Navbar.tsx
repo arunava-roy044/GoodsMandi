@@ -59,14 +59,14 @@ export default function Navbar() {
     return pathname.startsWith(link.href)
   }
 
+  // On your own profile the avatar is redundant, so the corner icon becomes Settings
   const onProfile = pathname === '/profile' || pathname.startsWith('/profile/settings')
+  const onSettings = pathname.startsWith('/profile/settings')
   const initial = user?.email?.charAt(0).toUpperCase() || 'U'
 
   const avatar = (
     <span
-      className={`h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20 text-sm text-emerald-400 flex items-center justify-center border ${
-        onProfile ? 'border-emerald-400' : 'border-emerald-500/50'
-      }`}
+      className={`h-8 w-8 shrink-0 overflow-hidden rounded-full bg-emerald-500/20 text-sm text-emerald-400 flex items-center justify-center border border-emerald-500/50`}
     >
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -76,6 +76,23 @@ export default function Navbar() {
       )}
     </span>
   )
+
+  const gear = (
+    <span
+      className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center border transition-colors ${
+        onSettings ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300' : 'border-slate-700 text-slate-300 hover:text-white hover:border-slate-500'
+      }`}
+    >
+      <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </span>
+  )
+
+  const cornerLink = onProfile
+    ? { href: '/profile/settings', label: 'Settings', icon: gear }
+    : { href: '/profile', label: 'Your profile', icon: avatar }
 
   return (
     <nav ref={navRef} className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
@@ -107,12 +124,12 @@ export default function Navbar() {
           <div className="hidden md:flex items-center ml-6">
             {user ? (
               <Link
-                href="/profile"
-                aria-label="Your profile"
-                title="Your profile"
+                href={cornerLink.href}
+                aria-label={cornerLink.label}
+                title={cornerLink.label}
                 className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
-                {avatar}
+                {cornerLink.icon}
               </Link>
             ) : (
               <div className="flex space-x-4">
@@ -128,8 +145,8 @@ export default function Navbar() {
 
           <div className="-mr-2 flex items-center gap-1 md:hidden">
             {user && (
-              <Link href="/profile" aria-label="Your profile" className="p-1.5" onClick={() => setMobileMenuOpen(false)}>
-                {avatar}
+              <Link href={cornerLink.href} aria-label={cornerLink.label} className="p-1.5" onClick={() => setMobileMenuOpen(false)}>
+                {cornerLink.icon}
               </Link>
             )}
             <button
