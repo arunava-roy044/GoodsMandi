@@ -22,6 +22,15 @@ export const LISTING_CATEGORIES = [
 
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
 
+// Extra category choice that lets the seller type their own tag.
+// Listings with a custom tag are grouped under this name when browsing.
+export const CATEGORY_OTHER = 'Others';
+export const CATEGORY_CUSTOM_MAX_LENGTH = 30;
+
+export function isStandardCategory(value: string | null | undefined): boolean {
+  return !!value && (LISTING_CATEGORIES as readonly string[]).includes(value);
+}
+
 // Product age brackets
 export const PRODUCT_AGE_BRACKETS = [
   'Under 6 months',
@@ -70,7 +79,7 @@ export const PROHIBITED_KEYWORDS = [
 ];
 
 // Category tag style. One neutral style for every category keeps the cards calm.
-const CATEGORY_TAG = 'bg-slate-900 text-slate-300';
+export const CATEGORY_TAG = 'bg-slate-900 text-slate-300';
 
 export const CATEGORY_COLORS: Record<ListingCategory, string> = {
   'Books & Study Material': CATEGORY_TAG,

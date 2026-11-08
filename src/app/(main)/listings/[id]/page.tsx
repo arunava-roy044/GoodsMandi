@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import { CATEGORY_COLORS } from '@/lib/constants';
+import { CATEGORY_COLORS, CATEGORY_TAG } from '@/lib/constants';
 import ListingDetailClient from './ListingDetailClient';
 
 export default async function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  const categoryColor = CATEGORY_COLORS[listing.category as keyof typeof CATEGORY_COLORS] || 'bg-slate-500/20 text-slate-300';
+  const categoryColor = CATEGORY_COLORS[listing.category as keyof typeof CATEGORY_COLORS] || CATEGORY_TAG;
 
   return (
     <ListingDetailClient

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
+  CATEGORY_CUSTOM_MAX_LENGTH,
+  CATEGORY_OTHER,
   LISTING_CATEGORIES,
   MIN_BID_PERCENTAGE,
   PRODUCT_AGE_BRACKETS,
@@ -50,6 +52,7 @@ export default function CreateListingPage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [customCategory, setCustomCategory] = useState('');
   const [askingPrice, setAskingPrice] = useState('');
   const [productAge, setProductAge] = useState<string>('');
   const [customProductAge, setCustomProductAge] = useState('');
@@ -75,6 +78,9 @@ export default function CreateListingPage() {
     if (photos.length === 0) return showError('Add at least one photo.');
     if (title.trim().length < TITLE_MIN) return showError(`Give your item a title of at least ${TITLE_MIN} characters.`);
     if (!category) return showError('Pick a category.');
+    if (category === CATEGORY_OTHER && customCategory.trim().length === 0) {
+      return showError('Type a category for your item, or pick one from the list.');
+    }
     if (!priceIsValid) return showError(`Enter a price in whole rupees, between ₹1 and ${formatPrice(PRICE_MAX)}.`);
     if (!productAge) return showError('Pick how old the item is.');
     if (productAge === PRODUCT_AGE_OTHER && customProductAge.trim().length === 0) {
@@ -126,7 +132,7 @@ export default function CreateListingPage() {
         .insert({
           title: title.trim(),
           description: description.trim() || null,
-          category,
+          category: category === CATEGORY_OTHER ? customCategory.trim() : category,
           asking_price: price,
           product_age: productAge === PRODUCT_AGE_OTHER ? customProductAge.trim() : productAge,
           photos: photoUrls,
@@ -204,7 +210,7 @@ export default function CreateListingPage() {
           <section className="space-y-2">
             <h2 id="category-label" className="text-sm font-medium text-slate-200">Category</h2>
             <div role="radiogroup" aria-labelledby="category-label" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {LISTING_CATEGORIES.map((cat) => (
+              {[...LISTING_CATEGORIES, CATEGORY_OTHER].map((cat) => (
                 <button
                   key={cat}
                   type="button"
@@ -213,10 +219,27 @@ export default function CreateListingPage() {
                   onClick={() => setCategory(cat)}
                   className={chipClass(category === cat)}
                 >
-                  {cat}
+                  {cat === CATEGORY_OTHER ? 'Others (type your own)' : cat}
                 </button>
               ))}
             </div>
+            {category === CATEGORY_OTHER && (
+              <div className="space-y-1">
+                <input
+                  type="text"
+                  maxLength={CATEGORY_CUSTOM_MAX_LENGTH}
+                  placeholder="e.g. Sports gear, Musical instruments, Tickets"
+                  aria-label="Your own category"
+                  className="input-field sm:w-80"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-xs text-slate-500">
+                  Shown as the tag on your listing. Buyers find it under &quot;Others&quot; when browsing.
+                </p>
+              </div>
+            )}
           </section>
 
           {/* Price */}

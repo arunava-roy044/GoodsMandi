@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import ListingCard from './ListingCard';
-import { LISTING_CATEGORIES } from '@/lib/constants';
+import { CATEGORY_OTHER, LISTING_CATEGORIES, isStandardCategory } from '@/lib/constants';
 
 type Profile = {
   id: string;
@@ -41,8 +41,15 @@ interface ListingsGridProps {
   initialQuery?: string;
 }
 
+const FILTER_CATEGORIES = [...LISTING_CATEGORIES, CATEGORY_OTHER] as string[];
+
 function isCategory(value: string | undefined): value is string {
-  return !!value && (LISTING_CATEGORIES as readonly string[]).includes(value);
+  return !!value && FILTER_CATEGORIES.includes(value);
+}
+
+// Listings with a seller-typed tag are grouped under "Others"
+function filterGroup(category: string): string {
+  return isStandardCategory(category) ? category : CATEGORY_OTHER;
 }
 
 // Keep the filters in the address bar so a filtered view can be shared or refreshed.
@@ -80,7 +87,8 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const listing of initialListings) {
-      counts[listing.category] = (counts[listing.category] ?? 0) + 1;
+      const group = filterGroup(listing.category);
+      counts[group] = (counts[group] ?? 0) + 1;
     }
     return counts;
   }, [initialListings]);
@@ -88,7 +96,7 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
   const visibleListings = useMemo(() => {
     const words = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
     const filtered = initialListings.filter((listing) => {
-      if (selectedCategory !== 'All' && listing.category !== selectedCategory) return false;
+      if (selectedCategory !== 'All' && filterGroup(listing.category) !== selectedCategory) return false;
       if (words.length === 0) return true;
       const haystack = `${listing.title} ${listing.description ?? ''} ${listing.category}`.toLowerCase();
       // Every word has to match somewhere, so "casio calculator" finds "Calculator, Casio fx-991"
@@ -179,7 +187,7 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
           All
           <span className="text-slate-500">{initialListings.length}</span>
         </button>
-        {LISTING_CATEGORIES.map((category) => (
+        {FILTER_CATEGORIES.map((category) => (
           <button
             key={category}
             type="button"

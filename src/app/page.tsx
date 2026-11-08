@@ -3,7 +3,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ListingCard from '@/components/listings/ListingCard';
 import { createClient } from '@/lib/supabase/server';
-import { LISTING_CATEGORIES } from '@/lib/constants';
+import { CATEGORY_OTHER, LISTING_CATEGORIES } from '@/lib/constants';
 import { getSampleListings } from '@/lib/sampleListings';
 
 export const dynamic = 'force-dynamic';
@@ -86,8 +86,8 @@ export default async function HomePage() {
           <h2 id="categories-heading" className="text-sm font-medium text-slate-400 mb-3">
             Shop by category
           </h2>
-          <ul className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {LISTING_CATEGORIES.map((category) => (
+          <ul className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...LISTING_CATEGORIES, CATEGORY_OTHER].map((category) => (
               <li key={category}>
                 <Link
                   href={`/listings?category=${encodeURIComponent(category)}`}

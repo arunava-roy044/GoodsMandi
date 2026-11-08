@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatPrice, timeAgo } from '@/lib/utils';
-import { CATEGORY_COLORS } from '@/lib/constants';
+import { CATEGORY_COLORS, CATEGORY_TAG } from '@/lib/constants';
 
 type Profile = {
   id: string;
@@ -32,7 +32,7 @@ interface ListingCardProps {
 
 export default function ListingCard({ listing, sample = false }: ListingCardProps) {
   const firstPhoto = listing.photos && listing.photos.length > 0 ? listing.photos[0] : null;
-  const categoryColor = CATEGORY_COLORS[listing.category as keyof typeof CATEGORY_COLORS] || 'bg-slate-500/20 text-slate-300';
+  const categoryColor = CATEGORY_COLORS[listing.category as keyof typeof CATEGORY_COLORS] || CATEGORY_TAG;
 
   return (
     <Wrapper listingId={listing.id} sample={sample}>
