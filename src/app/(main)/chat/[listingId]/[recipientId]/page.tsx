@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { timeAgo, errorMessage } from '@/lib/utils';
+import { errorMessage } from '@/lib/utils';
+import { dayLabel, isSameDay, messageTime } from '@/lib/chat';
 import ReportModal from '@/components/reports/ReportModal';
 
 type Message = {
@@ -13,212 +14,282 @@ type Message = {
   sender_id: string;
   recipient_id: string;
   created_at: string;
+  pending?: boolean;
 };
+
+const MESSAGE_MAX = 1000;
+
+// Add a message unless we already have it (our own sends arrive twice: insert result + realtime)
+function withMessage(list: Message[], msg: Message): Message[] {
+  if (list.some((m) => m.id === msg.id)) return list;
+  return [...list, msg];
+}
 
 export default function ChatThreadPage() {
   const params = useParams();
   const listingId = params.listingId as string;
   const recipientId = params.recipientId as string;
-  
+
+  const [supabase] = useState(() => createClient());
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
-  const [recipientName, setRecipientName] = useState('User');
-  const [listingTitle, setListingTitle] = useState('Listing');
+  const [recipientName, setRecipientName] = useState<string | null>(null);
+  const [listingTitle, setListingTitle] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Keep the newest message in view. Scrolls only the message pane, not the whole page.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, loading]);
+
+  // Grow the text box with its content, up to about five lines
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [newMessage]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+    let cancelled = false;
 
-  useEffect(() => {
-    let subscription: ReturnType<typeof supabase.channel> | undefined;
-
-    async function fetchInitialData() {
+    async function load() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user || cancelled) return;
         setCurrentUserId(user.id);
 
-        // Fetch header info
-        const [recipientRes, listingRes] = await Promise.all([
-          supabase.from('profiles').select('name').eq('id', recipientId).single(),
-          supabase.from('listings').select('title').eq('id', listingId).single()
+        if (user.id === recipientId) {
+          setLoadError("You can't message yourself.");
+          return;
+        }
+
+        const [recipientRes, listingRes, messagesRes] = await Promise.all([
+          supabase.from('profiles').select('name').eq('id', recipientId).maybeSingle(),
+          supabase.from('listings').select('title').eq('id', listingId).maybeSingle(),
+          supabase
+            .from('chat_messages')
+            .select('id, message_text, sender_id, recipient_id, created_at')
+            .eq('listing_id', listingId)
+            .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
+            .order('created_at', { ascending: true }),
         ]);
-        
-        if (recipientRes.data) setRecipientName(recipientRes.data.name);
-        if (listingRes.data) setListingTitle(listingRes.data.title);
+        if (cancelled) return;
+        if (messagesRes.error) throw messagesRes.error;
 
-        // Fetch messages
-        const { data: msgs, error } = await supabase
-          .from('chat_messages')
-          .select('id, message_text, sender_id, recipient_id, created_at')
-          .eq('listing_id', listingId)
-          .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
-          .order('created_at', { ascending: true });
+        setRecipientName(recipientRes.data?.name ?? null);
+        setListingTitle(listingRes.data?.title ?? null);
+        setMessages(messagesRes.data ?? []);
 
-        if (error) throw error;
-        setMessages(msgs || []);
-        
-        // Subscribe to real-time changes
-        subscription = supabase
-          .channel('public:chat_messages')
-          .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'chat_messages',
-            filter: `listing_id=eq.${listingId}`
-          }, payload => {
-            const newMsg = payload.new as Message;
-            if (
-              (newMsg.sender_id === user.id && newMsg.recipient_id === recipientId) ||
-              (newMsg.sender_id === recipientId && newMsg.recipient_id === user.id)
-            ) {
-              setMessages(prev => [...prev, newMsg]);
+        // New messages in this conversation, from either side
+        channel = supabase
+          .channel(`chat:${listingId}:${[user.id, recipientId].sort().join(':')}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `listing_id=eq.${listingId}` },
+            (payload) => {
+              const msg = payload.new as Message;
+              const inThisChat =
+                (msg.sender_id === user.id && msg.recipient_id === recipientId) ||
+                (msg.sender_id === recipientId && msg.recipient_id === user.id);
+              if (inThisChat) setMessages((prev) => withMessage(prev, msg));
             }
-          })
+          )
           .subscribe();
-
       } catch (err) {
         console.error('Error fetching chat thread:', errorMessage(err));
+        if (!cancelled) setLoadError(errorMessage(err, "Couldn't load this chat."));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    fetchInitialData();
+    load();
 
     return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [listingId, recipientId, supabase]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentUserId) return;
-    
-    const text = newMessage;
-    setNewMessage('');
-    setSending(true);
+  const send = async () => {
+    const text = newMessage.trim();
+    if (!text || !currentUserId) return;
 
-    try {
-      const { error } = await supabase
-        .from('chat_messages')
-        .insert({
-          listing_id: listingId,
-          sender_id: currentUserId,
-          recipient_id: recipientId,
-          message_text: text.trim()
-        });
-        
-      if (error) throw error;
-    } catch (err) {
-      console.error('Error sending message:', errorMessage(err));
-      // In a real app, you might want to show a toast error here and restore the message text
-    } finally {
-      setSending(false);
+    // Show the message straight away; swap in the saved row when the insert returns
+    const tempId = `pending-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        message_text: text,
+        sender_id: currentUserId,
+        recipient_id: recipientId,
+        created_at: new Date().toISOString(),
+        pending: true,
+      },
+    ]);
+    setNewMessage('');
+    setSendError(null);
+    inputRef.current?.focus();
+
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert({ listing_id: listingId, sender_id: currentUserId, recipient_id: recipientId, message_text: text })
+      .select('id, message_text, sender_id, recipient_id, created_at')
+      .single();
+
+    if (error || !data) {
+      console.error('Error sending message:', errorMessage(error));
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      // Give the text back so nothing typed is lost
+      setNewMessage((current) => current || text);
+      setSendError(
+        error?.code === '42501'
+          ? "This listing isn't available any more, so you can't send messages here."
+          : "Message didn't send. Check your connection and try again."
+      );
+      return;
+    }
+
+    setMessages((prev) => {
+      const withoutTemp = prev.filter((m) => m.id !== tempId);
+      return withMessage(withoutTemp, data);
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter sends, Shift+Enter adds a new line
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      send();
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-3xl h-[calc(100vh-100px)] flex flex-col">
-        <div className="glass-card skeleton h-20 w-full rounded-t-2xl"></div>
-        <div className="glass-card flex-1 w-full rounded-b-2xl mt-1 skeleton"></div>
-      </div>
-    );
-  }
+  const displayName = recipientName ?? 'Student';
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl h-[calc(100vh-100px)] flex flex-col">
+    // Fill the screen below the navbar (4rem) minus the page padding (4rem)
+    <div className="max-w-3xl mx-auto h-[calc(100dvh-8rem)] min-h-[420px] flex flex-col glass-card overflow-hidden">
       {/* Header */}
-      <div className="glass-card rounded-t-2xl p-4 flex items-center justify-between border-b border-slate-700/50 bg-slate-900/80 z-10">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-100 flex items-center">
-            {recipientName}
-          </h2>
-          <Link href={`/listings/${listingId}`} className="text-sm text-brand-500 hover:text-brand-400 transition-colors flex items-center">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-            {listingTitle}
+      <div className="flex items-center gap-3 border-b border-slate-800 px-3 py-3 sm:px-4">
+        <Link href="/chat" className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Back to messages">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link href={`/profile/${recipientId}`} className="block truncate font-medium text-white hover:underline">
+            {loading ? ' ' : displayName}
           </Link>
+          {listingTitle ? (
+            <Link href={`/listings/${listingId}`} className="block truncate text-xs text-brand-400 hover:text-brand-300">
+              {listingTitle}
+            </Link>
+          ) : (
+            !loading && <span className="block truncate text-xs text-slate-500">Listing no longer available</span>
+          )}
         </div>
-        <button 
+        <button
+          type="button"
           onClick={() => setIsReportModalOpen(true)}
-          className="btn-ghost text-slate-400 hover:text-red-400 text-sm py-1.5 px-3 flex items-center"
+          className="rounded-md px-2.5 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-red-400"
         >
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
           Report
         </button>
       </div>
 
       {/* Messages */}
-      <div className="glass-card flex-1 overflow-y-auto p-4 space-y-4 rounded-none bg-slate-900/40">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400">
-            <p>No messages yet.</p>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 space-y-1.5 bg-slate-950/40">
+        {loading ? (
+          <div className="space-y-3">
+            <div className="skeleton h-9 w-1/2" />
+            <div className="skeleton h-9 w-2/5 ml-auto" />
+            <div className="skeleton h-9 w-1/3" />
+          </div>
+        ) : loadError ? (
+          <div className="h-full flex items-center justify-center text-center text-slate-400 px-6">{loadError}</div>
+        ) : messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center px-6">
+            <p className="text-slate-300 mb-1">Say hi to {displayName}</p>
+            <p className="text-sm text-slate-500">Agree on a time and a place on campus to meet.</p>
           </div>
         ) : (
-          messages.map((msg) => {
+          messages.map((msg, index) => {
             const isMe = msg.sender_id === currentUserId;
+            const previous = messages[index - 1];
+            const newDay = !previous || !isSameDay(previous.created_at, msg.created_at);
+            const sameSenderAsPrevious = !newDay && previous?.sender_id === msg.sender_id;
             return (
-              <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div 
-                  className={`max-w-[75%] rounded-lg px-4 py-2 ${
-                    isMe 
-                      ? 'bg-brand-500/20 text-brand-100 border border-brand-500/30 rounded-br-sm' 
-                      : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-sm'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap break-words text-sm md:text-base">{msg.message_text}</p>
-                  <div className={`text-[10px] mt-1 ${isMe ? 'text-brand-500/60 text-right' : 'text-slate-500 text-left'}`}>
-                    {timeAgo(msg.created_at)}
+              <Fragment key={msg.id}>
+                {newDay && (
+                  <div className="flex justify-center py-2">
+                    <span className="rounded-full bg-slate-800 px-3 py-0.5 text-xs text-slate-400">{dayLabel(msg.created_at)}</span>
+                  </div>
+                )}
+                <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} ${sameSenderAsPrevious ? '' : 'pt-1.5'}`}>
+                  <div
+                    className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-3.5 py-2 ${
+                      isMe ? 'bg-brand-700 text-white rounded-br-md' : 'bg-slate-800 text-slate-100 rounded-bl-md'
+                    } ${msg.pending ? 'opacity-70' : ''}`}
+                  >
+                    <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">{msg.message_text}</p>
+                    <p className={`mt-0.5 text-right text-[11px] ${isMe ? 'text-brand-100/70' : 'text-slate-400'}`}>
+                      {msg.pending ? 'Sending...' : messageTime(msg.created_at)}
+                    </p>
                   </div>
                 </div>
-              </div>
+              </Fragment>
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="glass-card rounded-b-2xl p-4 border-t border-slate-700/50 bg-slate-900/80">
-        <form onSubmit={handleSend} className="flex space-x-2">
-          <input
-            type="text"
+      {/* Composer */}
+      <div className="border-t border-slate-800 px-3 py-3 sm:px-4">
+        {sendError && <p className="mb-2 text-sm text-red-400" role="alert">{sendError}</p>}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
+          className="flex items-end gap-2"
+        >
+          <textarea
+            ref={inputRef}
+            rows={1}
             value={newMessage}
+            maxLength={MESSAGE_MAX}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="input-field flex-1"
-            disabled={sending}
+            onKeyDown={handleKeyDown}
+            placeholder={loadError ? '' : 'Write a message'}
+            aria-label="Message"
+            disabled={loading || !!loadError}
+            className="input-field flex-1 resize-none leading-snug"
           />
-          <button 
-            type="submit" 
-            disabled={!newMessage.trim() || sending}
-            className="btn-primary px-6 rounded-lg flex items-center justify-center min-w-[100px]"
+          <button
+            type="submit"
+            disabled={!newMessage.trim() || loading || !!loadError}
+            className="btn-primary h-[42px] px-4"
+            aria-label="Send message"
           >
-            {sending ? (
-              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            ) : (
-              <svg className="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-            )}
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
           </button>
         </form>
       </div>
 
-      <ReportModal 
+      <ReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         reportedUserId={recipientId}
