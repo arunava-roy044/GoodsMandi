@@ -13,7 +13,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -41,6 +41,7 @@ export default function Navbar() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (!session?.user) setIsAdmin(false)
     })
 
     return () => subscription.unsubscribe()
@@ -84,7 +85,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
+    <nav ref={mobileMenuRef} className="sticky top-0 z-50 bg-slate-950 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
@@ -173,6 +174,7 @@ export default function Navbar() {
           <div className="-mr-2 flex md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
               className="inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none"
             >
               <span className="sr-only">Open main menu</span>
@@ -191,7 +193,7 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div ref={mobileMenuRef} className="md:hidden bg-slate-950 border-t border-slate-800">
+        <div className="md:hidden bg-slate-950 border-t border-slate-800">
           <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
             {navLinks.map((link) => (
               <Link
@@ -260,14 +262,14 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="btn-ghost w-full justify-center"
+                className="btn-secondary w-full text-center"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
                 onClick={() => setMobileMenuOpen(false)}
-                className="btn-primary w-full justify-center"
+                className="btn-primary w-full text-center"
               >
                 Sign up
               </Link>

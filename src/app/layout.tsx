@@ -19,9 +19,9 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth">
       <body className={`${inter.className} bg-slate-950 text-slate-50 min-h-screen antialiased`}>
         <ToastProvider>
-          <main className="flex flex-col min-h-screen">
+          <div className="flex flex-col min-h-screen">
             {children}
-          </main>
+          </div>
         </ToastProvider>
       </body>
     </html>

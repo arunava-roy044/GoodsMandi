@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +20,19 @@ export default function LoginPage() {
   const { showToast } = useToast()
   const supabase = createClient()
 
+  // Show the error the email-confirmation callback sends back (e.g. an expired link)
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get('error')
+    if (error) showToast(error, 'error')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Where to go after logging in. Only same-site paths, so `next` can't send users to another host.
+  const nextPath = () => {
+    const next = new URLSearchParams(window.location.search).get('next')
+    return next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : '/listings'
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -38,7 +51,7 @@ export default function LoginPage() {
         }
       } else {
         showToast('Logged in', 'success')
-        router.push('/listings')
+        router.push(nextPath())
         router.refresh()
       }
     } catch {
