@@ -4,10 +4,12 @@ import Footer from '@/components/layout/Footer';
 import ListingCard from '@/components/listings/ListingCard';
 import { createClient } from '@/lib/supabase/server';
 import { LISTING_CATEGORIES } from '@/lib/constants';
+import { getSampleListings } from '@/lib/sampleListings';
 
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_TIMEOUT_MS = 4000;
+const FEED_SIZE = 8;
 
 // Never let a slow or paused Supabase hang the landing page: give up and render the logged-out view.
 function withTimeout<T>(promise: PromiseLike<T>): Promise<T | null> {
@@ -21,23 +23,36 @@ async function getHomeData() {
   const supabase = await createClient();
   const userResult = await withTimeout(supabase.auth.getUser());
   const user = userResult?.data.user ?? null;
-  if (!user) return { user: null, recent: [] };
+  if (!user) return { user: null, recent: [], activeCount: null };
 
   // Listings are only readable when signed in (RLS), so only fetch them for logged-in visitors.
-  const listingsResult = await withTimeout(
-    supabase
-      .from('listings')
-      .select('id, title, asking_price, category, product_age, photos, created_at, seller:profiles!seller_id(id, name, profile_photo_url, rating_avg)')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(4)
-  );
+  const [listingsResult, countResult] = await Promise.all([
+    withTimeout(
+      supabase
+        .from('listings')
+        .select('id, title, asking_price, category, product_age, photos, created_at, seller:profiles!seller_id(id, name, profile_photo_url, rating_avg)')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(FEED_SIZE)
+    ),
+    withTimeout(
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active')
+    ),
+  ]);
 
-  return { user, recent: listingsResult?.data ?? [] };
+  const recent = (listingsResult?.data ?? []).map((listing) => ({
+    ...listing,
+    // Supabase types the joined seller as an array; it is a single row here.
+    seller: Array.isArray(listing.seller) ? listing.seller[0] : listing.seller,
+  }));
+
+  return { user, recent, activeCount: countResult?.count ?? null };
 }
 
 export default async function HomePage() {
-  const { user, recent } = await getHomeData();
+  const { user, recent, activeCount } = await getHomeData();
+  // Top the feed up with example products so the home page never looks empty
+  const samples = getSampleListings().slice(0, Math.max(0, FEED_SIZE - recent.length));
   const sellHref = user ? '/listings/create' : '/login?next=/listings/create';
 
   return (
@@ -67,7 +82,7 @@ export default async function HomePage() {
           )}
         </section>
 
-        <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-12" aria-labelledby="categories-heading">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-12" aria-labelledby="categories-heading">
           <h2 id="categories-heading" className="text-sm font-medium text-slate-400 mb-3">
             Shop by category
           </h2>
@@ -86,38 +101,40 @@ export default async function HomePage() {
           </ul>
         </section>
 
-        {user && (
-          <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-24" aria-labelledby="recent-heading">
-            <div className="flex items-baseline justify-between mb-3">
-              <h2 id="recent-heading" className="text-sm font-medium text-slate-400">
-                Recently listed
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-24" aria-labelledby="feed-heading">
+          <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
+            <div>
+              <h2 id="feed-heading" className="text-xl font-semibold text-white">
+                Latest listings
               </h2>
-              <Link href="/listings" className="text-sm text-brand-400 hover:text-brand-300">
-                See all
-              </Link>
+              <p className="text-sm text-slate-400 mt-1">
+                {user
+                  ? activeCount !== null
+                    ? `${activeCount} ${activeCount === 1 ? 'item' : 'items'} for sale right now`
+                    : 'Fresh items from students on campus'
+                  : 'Log in to see what students are selling right now'}
+              </p>
             </div>
-            {recent.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {recent.map((listing) => (
-                  <ListingCard
-                    key={listing.id}
-                    // Supabase types the joined seller as an array; it is a single row here.
-                    listing={{ ...listing, seller: Array.isArray(listing.seller) ? listing.seller[0] : listing.seller }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-md border border-dashed border-slate-800 px-4 py-10 text-center">
-                <p className="text-slate-400 mb-4">Nothing listed yet. Be the first.</p>
-                <Link href="/listings/create" className="btn-primary">
-                  Sell an item
-                </Link>
-              </div>
-            )}
-          </section>
-        )}
+            <Link href="/listings" className="text-sm text-brand-400 hover:text-brand-300">
+              See all listings &rarr;
+            </Link>
+          </div>
 
-        {!user && <div className="pb-12" />}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {recent.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+            {samples.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} sample />
+            ))}
+          </div>
+
+          {samples.length > 0 && (
+            <p className="mt-4 text-xs text-slate-500">
+              Cards marked <span className="text-amber-300">Example</span> show what a listing looks like. They aren&apos;t real items.
+            </p>
+          )}
+        </section>
       </main>
 
       <Footer />

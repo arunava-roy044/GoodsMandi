@@ -25,14 +25,16 @@ type Listing = {
 
 interface ListingCardProps {
   listing: Listing;
+  /** An example product: labelled "Example" and not clickable. */
+  sample?: boolean;
 }
 
-export default function ListingCard({ listing }: ListingCardProps) {
+export default function ListingCard({ listing, sample = false }: ListingCardProps) {
   const firstPhoto = listing.photos && listing.photos.length > 0 ? listing.photos[0] : null;
   const categoryColor = CATEGORY_COLORS[listing.category as keyof typeof CATEGORY_COLORS] || 'bg-slate-500/20 text-slate-300';
 
   return (
-    <Link href={`/listings/${listing.id}`} className="block group">
+    <Wrapper listingId={listing.id} sample={sample}>
       <div className="rounded-lg overflow-hidden bg-slate-900 border border-slate-800 h-full flex flex-col transition-colors duration-150 group-hover:border-slate-600">
         {/* Image Section */}
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800">
@@ -57,12 +59,19 @@ export default function ListingCard({ listing }: ListingCardProps) {
               {listing.category}
             </span>
           </div>
+          {sample && (
+            <div className="absolute top-2 right-2">
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/40">
+                Example
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Content Section */}
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex justify-between items-start gap-3 mb-2">
-            <h3 className="font-medium text-base text-white line-clamp-1">
+            <h3 className="font-medium text-base text-white line-clamp-2">
               {listing.title}
             </h3>
             <span className="text-base font-semibold text-white whitespace-nowrap">
@@ -105,6 +114,21 @@ export default function ListingCard({ listing }: ListingCardProps) {
           </div>
         </div>
       </div>
+    </Wrapper>
+  );
+}
+
+function Wrapper({ listingId, sample, children }: { listingId: string; sample: boolean; children: React.ReactNode }) {
+  if (sample) {
+    return (
+      <div className="block group cursor-default" title="Example listing" aria-label="Example listing">
+        {children}
+      </div>
+    );
+  }
+  return (
+    <Link href={`/listings/${listingId}`} className="block group">
+      {children}
     </Link>
   );
 }

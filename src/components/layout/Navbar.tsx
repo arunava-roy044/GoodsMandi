@@ -72,6 +72,7 @@ export default function Navbar() {
   }
 
   const navLinks = [
+    { name: 'Home', href: '/', exact: true },
     { name: 'Browse', href: '/listings', exact: true },
     { name: 'Sell', href: '/listings/create', exact: true },
     { name: 'Chat', href: '/chat', exact: false },
