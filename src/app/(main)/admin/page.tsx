@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -26,9 +26,9 @@ export default function AdminDashboard() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     async function checkAdminAndFetch() {
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
     }
 
     checkAdminAndFetch();
-  }, [router, supabase]);
+  }, [router, supabase, fetchReports]);
 
   const handleAction = async (reportId: string, reportedUserId: string, action: 'confirmed' | 'dismissed') => {
     setProcessingId(reportId);
