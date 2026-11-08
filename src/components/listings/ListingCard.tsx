@@ -61,7 +61,7 @@ export default function ListingCard({ listing, sample = false }: ListingCardProp
           </div>
           {sample && (
             <div className="absolute top-2 right-2">
-              <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/40">
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-400 text-slate-900 border border-amber-300">
                 Example
               </span>
             </div>
