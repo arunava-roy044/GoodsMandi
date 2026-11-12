@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/utils';
+import { PHOTO_CACHE_SECONDS, PHOTO_PICK_MAX_MB, STORAGE_MAX_BYTES, prepareImage } from '@/lib/images';
 import { Modal } from '@/components/ui/Modal';
 
 const PHOTO_BUCKET = 'profile-photos';
-const PHOTO_MAX_MB = 5;
+// Profile photos show at most 80px wide; 512px stays sharp on high-density screens
+const PROFILE_PHOTO_MAX_SIDE = 512;
 const NAME_MAX = 60;
 const BRANCH_MAX = 60;
 const YEARS = [1, 2, 3, 4, 5];
@@ -122,7 +124,7 @@ export default function SettingsPage() {
     setError(null);
     if (!file) return;
     if (!file.type.startsWith('image/')) return setError('Choose an image file.');
-    if (file.size > PHOTO_MAX_MB * 1024 * 1024) return setError(`Photo must be under ${PHOTO_MAX_MB} MB.`);
+    if (file.size > PHOTO_PICK_MAX_MB * 1024 * 1024) return setError(`Photo must be under ${PHOTO_PICK_MAX_MB} MB.`);
     setNewPhoto(file);
   };
 
@@ -139,11 +141,12 @@ export default function SettingsPage() {
     try {
       let photoUrl = form.profile_photo_url;
       if (newPhoto) {
-        const ext = (newPhoto.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-        uploadedPath = `${userId}/${crypto.randomUUID()}.${ext}`;
+        const image = await prepareImage(newPhoto, PROFILE_PHOTO_MAX_SIDE);
+        if (image.body.size > STORAGE_MAX_BYTES) throw new Error('That photo is too large. Try a JPEG or PNG under 5 MB.');
+        uploadedPath = `${userId}/${crypto.randomUUID()}.${image.extension}`;
         const { error: uploadError } = await supabase.storage
           .from(PHOTO_BUCKET)
-          .upload(uploadedPath, newPhoto, { contentType: newPhoto.type || undefined });
+          .upload(uploadedPath, image.body, { contentType: image.contentType, cacheControl: PHOTO_CACHE_SECONDS });
         if (uploadError) throw uploadError;
         photoUrl = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(uploadedPath).data.publicUrl;
       }
