@@ -20,8 +20,18 @@ type Report = {
   reported: { name: string; warning_count: number; banned: boolean };
 };
 
+type FlaggedListing = {
+  id: string;
+  title: string;
+  description: string | null;
+  created_at: string;
+  seller_id: string;
+  seller: { name: string } | null;
+};
+
 export default function AdminDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
+  const [flagged, setFlagged] = useState<FlaggedListing[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'dismissed'>('pending');
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -51,6 +61,17 @@ export default function AdminDashboard() {
 
       if (error) throw error;
       setReports((data as unknown as Report[]) || []);
+
+      // Active listings the database flagged for prohibited words
+      const { data: flaggedData, error: flaggedError } = await supabase
+        .from('listings')
+        .select('id, title, description, created_at, seller_id, seller:profiles!seller_id(name)')
+        .eq('status', 'active')
+        .eq('flagged', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (flaggedError) throw flaggedError;
+      setFlagged((flaggedData as unknown as FlaggedListing[]) || []);
     } catch (err) {
       console.error('Error fetching reports:', errorMessage(err));
     } finally {
@@ -122,7 +143,7 @@ export default function AdminDashboard() {
   // Moderation actions run as database functions that check admin rights and log to admin_actions
   const runModeration = async (
     key: string,
-    fn: 'admin_set_ban' | 'admin_reset_warnings' | 'admin_remove_listing',
+    fn: 'admin_set_ban' | 'admin_reset_warnings' | 'admin_remove_listing' | 'admin_clear_flag',
     args: Record<string, unknown>,
     confirmText: string,
     done: string
@@ -183,6 +204,60 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {flagged.length > 0 && (
+        <section className="mb-8" aria-labelledby="flagged-heading">
+          <h2 id="flagged-heading" className="text-lg font-semibold text-slate-100 mb-1">
+            Flagged listings <span className="text-sm font-normal text-slate-400">({flagged.length})</span>
+          </h2>
+          <p className="text-sm text-slate-400 mb-4">These mention words on the prohibited list. They are live until you act.</p>
+          <ul className="space-y-3">
+            {flagged.map((listing) => (
+              <li key={listing.id} className="glass-card rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <Link href={`/listings/${listing.id}`} className="font-medium text-brand-400 hover:underline break-words">
+                    {listing.title}
+                  </Link>
+                  {listing.description && <p className="text-sm text-slate-400 mt-1 line-clamp-2">{listing.description}</p>}
+                  <p className="text-xs text-slate-500 mt-1">
+                    {listing.seller?.name || 'Unknown'} · {timeAgo(listing.created_at)}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={!!processingId}
+                    onClick={() => runModeration(
+                      `${listing.id}:remove`,
+                      'admin_remove_listing',
+                      { target_listing: listing.id, reason: 'Prohibited item' },
+                      'Take this listing down?',
+                      'Listing removed'
+                    )}
+                    className="btn-danger text-xs px-3 py-1.5"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!!processingId}
+                    onClick={() => runModeration(
+                      `${listing.id}:clear`,
+                      'admin_clear_flag',
+                      { target_listing: listing.id },
+                      'Mark this listing as fine? The flag will be cleared.',
+                      'Flag cleared'
+                    )}
+                    className="btn-ghost text-xs px-3 py-1.5 border border-slate-700 hover:bg-slate-700"
+                  >
+                    It&apos;s fine
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Tabs */}
       <div className="flex space-x-1 mb-6 p-1 bg-slate-800/50 rounded-lg inline-flex">
