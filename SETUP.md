@@ -25,6 +25,14 @@
 
 This creates all tables, enums, triggers, RLS policies, and storage buckets.
 
+**New Supabase project?** Photo links are only accepted from this project's storage. After running the migrations, point the check at your project (replace `<project-ref>`):
+
+```sql
+UPDATE public.app_config
+SET value = 'https://<project-ref>.supabase.co/storage/v1/object/public/'
+WHERE key = 'storage_public_url';
+```
+
 ---
 
 ## Step 3: Configure Authentication

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { timeAgo, errorMessage } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 
 type Report = {
   id: string;
@@ -16,7 +17,7 @@ type Report = {
   status: 'pending' | 'confirmed' | 'dismissed';
   created_at: string;
   reporter: { name: string };
-  reported: { name: string; warning_count: number };
+  reported: { name: string; warning_count: number; banned: boolean };
 };
 
 export default function AdminDashboard() {
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   
   const router = useRouter();
+  const { showToast } = useToast();
   const [supabase] = useState(() => createClient());
 
   const fetchReports = useCallback(async () => {
@@ -43,7 +45,7 @@ export default function AdminDashboard() {
           status,
           created_at,
           reporter:profiles!reporter_id(name),
-          reported:profiles!reported_user_id(name, warning_count)
+          reported:profiles!reported_user_id(name, warning_count, banned)
         `)
         .order('created_at', { ascending: false });
 
@@ -65,13 +67,10 @@ export default function AdminDashboard() {
           return;
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
+        // is_admin isn't readable on profiles; the database answers for the caller
+        const { data: isAdmin } = await supabase.rpc('is_admin');
 
-        if (!profile?.is_admin) {
+        if (isAdmin !== true) {
           router.push('/listings');
           return;
         }
@@ -114,7 +113,29 @@ export default function AdminDashboard() {
       ));
     } catch (err) {
       console.error(`Error processing action ${action}:`, err);
-      alert(errorMessage(err, 'Failed to process action. Please try again.'));
+      showToast(errorMessage(err, 'Failed to process action. Please try again.'), 'error');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Moderation actions run as database functions that check admin rights and log to admin_actions
+  const runModeration = async (
+    key: string,
+    fn: 'admin_set_ban' | 'admin_reset_warnings' | 'admin_remove_listing',
+    args: Record<string, unknown>,
+    confirmText: string,
+    done: string
+  ) => {
+    if (!window.confirm(confirmText)) return;
+    setProcessingId(key);
+    try {
+      const { error } = await supabase.rpc(fn, args);
+      if (error) throw error;
+      showToast(done, 'success');
+      await fetchReports();
+    } catch (err) {
+      showToast(errorMessage(err, 'That didn\'t work. Please try again.'), 'error');
     } finally {
       setProcessingId(null);
     }
@@ -233,6 +254,55 @@ export default function AdminDashboard() {
                         </span>
                       )}
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {report.reported_listing_id && (
+                      <button
+                        type="button"
+                        disabled={!!processingId}
+                        onClick={() => runModeration(
+                          `${report.id}:remove`,
+                          'admin_remove_listing',
+                          { target_listing: report.reported_listing_id, reason: `Report ${report.id}` },
+                          'Take this listing down? It will be marked as removed.',
+                          'Listing removed'
+                        )}
+                        className="btn-ghost text-xs px-3 py-1.5 border border-slate-700 hover:bg-slate-700"
+                      >
+                        Remove listing
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!!processingId}
+                      onClick={() => runModeration(
+                        `${report.id}:ban`,
+                        'admin_set_ban',
+                        { target: report.reported_user_id, ban: !report.reported?.banned, reason: `Report ${report.id}` },
+                        report.reported?.banned ? 'Unban this user?' : 'Ban this user? They will not be able to list, offer, chat, rate or report.',
+                        report.reported?.banned ? 'User unbanned' : 'User banned'
+                      )}
+                      className="btn-ghost text-xs px-3 py-1.5 border border-slate-700 hover:bg-slate-700"
+                    >
+                      {report.reported?.banned ? 'Unban user' : 'Ban user'}
+                    </button>
+                    {(report.reported?.warning_count ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        disabled={!!processingId}
+                        onClick={() => runModeration(
+                          `${report.id}:reset`,
+                          'admin_reset_warnings',
+                          { target: report.reported_user_id, reason: `Report ${report.id}` },
+                          'Reset this user\'s warnings to 0?',
+                          'Warnings reset'
+                        )}
+                        className="btn-ghost text-xs px-3 py-1.5 border border-slate-700 hover:bg-slate-700"
+                      >
+                        Reset warnings
+                      </button>
+                    )}
                   </div>
                 </div>
 

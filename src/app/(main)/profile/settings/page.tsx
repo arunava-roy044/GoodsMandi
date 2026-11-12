@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/utils';
+import { Modal } from '@/components/ui/Modal';
 
 const PHOTO_BUCKET = 'profile-photos';
 const PHOTO_MAX_MB = 5;
@@ -64,6 +65,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const photoPreview = useMemo(() => (newPhoto ? URL.createObjectURL(newPhoto) : null), [newPhoto]);
   useEffect(() => () => {
@@ -80,11 +84,14 @@ export default function SettingsPage() {
       setUserId(user.id);
       setEmail(user.email ?? '');
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('name, year_of_study, branch_course, profile_photo_url, is_admin')
-        .eq('id', user.id)
-        .single();
+      const [{ data, error }, { data: admin }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('name, year_of_study, branch_course, profile_photo_url')
+          .eq('id', user.id)
+          .single(),
+        supabase.rpc('is_admin'),
+      ]);
 
       if (error || !data) {
         setError("Couldn't load your profile. Refresh to try again.");
@@ -97,7 +104,7 @@ export default function SettingsPage() {
         };
         setSaved(loaded);
         setForm(loaded);
-        setIsAdmin(!!data.is_admin);
+        setIsAdmin(admin === true);
       }
       setLoading(false);
     }
@@ -162,6 +169,20 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    // Deletes the account with its listings, offers, messages and ratings
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) {
+      setDeleting(false);
+      showToast(errorMessage(error, "Couldn't delete your account. Please try again."), 'error');
+      return;
+    }
+    await supabase.auth.signOut();
+    router.replace('/');
+    router.refresh();
   };
 
   const handleLogout = async () => {
@@ -307,8 +328,43 @@ export default function SettingsPage() {
           {isAdmin && <SettingsRow href="/admin">Admin dashboard</SettingsRow>}
           <SettingsRow href="/terms">Terms of Service</SettingsRow>
           <SettingsRow onClick={handleLogout} danger>Log out</SettingsRow>
+          <SettingsRow onClick={() => { setDeleteText(''); setDeleteOpen(true); }} danger>Delete account</SettingsRow>
         </div>
       </section>
+
+      <Modal isOpen={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} title="Delete your account?">
+        <div className="space-y-4 text-sm text-slate-300">
+          <p>
+            This permanently deletes your profile, your listings, your offers, your messages and your ratings.
+            It can&apos;t be undone.
+          </p>
+          <label htmlFor="delete-confirm" className="block text-slate-400">
+            Type <span className="font-mono text-white">DELETE</span> to confirm
+          </label>
+          <input
+            id="delete-confirm"
+            type="text"
+            autoComplete="off"
+            className="input-field"
+            value={deleteText}
+            onChange={(e) => setDeleteText(e.target.value)}
+            disabled={deleting}
+          />
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-primary bg-red-600 hover:bg-red-500"
+              onClick={handleDeleteAccount}
+              disabled={deleteText !== 'DELETE' || deleting}
+            >
+              {deleting ? 'Deleting...' : 'Delete account'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
