@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatPrice, timeAgo } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/Toast';
+import { errorMessage, formatPrice, timeAgo } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import BidDashboard from '@/components/listings/BidDashboard';
 import RatingModal from '@/components/ratings/RatingModal';
@@ -22,6 +24,7 @@ type ListingDetail = {
   photos: string[] | null;
   status: 'active' | 'sold' | 'removed';
   selected_bidder_id: string | null;
+  removed_reason: 'seller' | 'admin' | 'banned' | 'expired' | null;
   created_at: string;
   seller: {
     id: string;
@@ -46,6 +49,9 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
   const [reportOpen, setReportOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const [alreadyRated, setAlreadyRated] = useState<boolean | null>(null);
+  const [renewing, setRenewing] = useState(false);
+  const router = useRouter();
+  const { showToast } = useToast();
 
   // Client-side auth check as fallback when server-side auth returns null
   useEffect(() => {
@@ -66,6 +72,28 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
   const mainPhoto = photos[photoIndex] ?? photos[0] ?? null;
   const sellerName = listing.seller?.name ?? 'Seller';
   const sellerRating = Number(listing.seller?.rating_avg ?? 0);
+
+  const removedMessage: Record<NonNullable<ListingDetail['removed_reason']>, string> = {
+    seller: isSeller ? 'You removed this listing.' : 'The seller removed this listing.',
+    admin: 'This listing was taken down by a moderator.',
+    banned: 'This listing is hidden while the seller\'s account is restricted.',
+    expired: isSeller
+      ? 'This listing expired after 60 days without new offers. Renew it to put it back up.'
+      : 'This listing expired.',
+  };
+
+  const handleRenew = async () => {
+    setRenewing(true);
+    const { error } = await createClient().rpc('renew_listing', { p_listing: listing.id });
+    if (error) {
+      showToast(errorMessage(error, "Couldn't renew the listing. Please try again."), 'error');
+      setRenewing(false);
+      return;
+    }
+    showToast('Your listing is back up', 'success');
+    router.refresh();
+    setRenewing(false);
+  };
 
   // After a sale, the seller and the buyer can rate each other once
   const canRate = isSold && (isSeller || isBuyer);
@@ -140,7 +168,7 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
             {(isSold || isRemoved) && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                 <span className="rounded-md border border-slate-700 bg-slate-900 px-5 py-2 text-lg font-semibold text-white">
-                  {isSold ? 'Sold' : 'Removed'}
+                  {isSold ? 'Sold' : listing.removed_reason === 'expired' ? 'Expired' : 'Removed'}
                 </span>
               </div>
             )}
@@ -193,6 +221,17 @@ export default function ListingDetailClient({ listing, categoryColor, serverUser
               <Link href={`/login?next=/listings/${listing.id}`} className="btn-primary block w-full text-center">
                 Log in to make an offer
               </Link>
+            )}
+
+            {isRemoved && (
+              <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4 text-center">
+                <p className="text-slate-300">{removedMessage[listing.removed_reason ?? 'seller']}</p>
+                {isSeller && listing.removed_reason === 'expired' && (
+                  <button type="button" onClick={handleRenew} disabled={renewing} className="btn-primary mt-4 text-sm">
+                    {renewing ? 'Renewing...' : 'Renew listing'}
+                  </button>
+                )}
+              </div>
             )}
 
             {isSold && (

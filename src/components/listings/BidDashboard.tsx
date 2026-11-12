@@ -72,23 +72,9 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
 
     setActionLoading(`accept-${bid.id}`);
     try {
-      // Bids first, so a failure part-way doesn't leave the listing sold with no accepted offer
-      const { error: winnerErr } = await supabase.from('bids').update({ status: 'selected' }).eq('id', bid.id);
-      if (winnerErr) throw winnerErr;
-
-      const { error: rejectErr } = await supabase
-        .from('bids')
-        .update({ status: 'rejected' })
-        .eq('listing_id', listingId)
-        .eq('status', 'pending')
-        .neq('id', bid.id);
-      if (rejectErr) throw rejectErr;
-
-      const { error: listingErr } = await supabase
-        .from('listings')
-        .update({ status: 'sold', selected_bidder_id: bid.bidder_id })
-        .eq('id', listingId);
-      if (listingErr) throw listingErr;
+      // One database call: accepts this offer, declines the others and marks the item sold, or does nothing
+      const { error } = await supabase.rpc('accept_offer', { p_bid: bid.id });
+      if (error) throw error;
 
       showToast(`Offer accepted. Chat with ${name} to arrange the meet-up.`, 'success');
       await loadBids();
@@ -105,14 +91,38 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
   const handleBackup = async (bid: Bid) => {
     setActionLoading(`backup-${bid.id}`);
     try {
-      const { error } = await supabase.from('listings').update({ backup_bidder_id: bid.bidder_id }).eq('id', listingId);
+      const { error } = await supabase.rpc('set_backup_buyer', { p_bid: bid.id });
       if (error) throw error;
-      const { error: bidErr } = await supabase.from('bids').update({ status: 'backup' }).eq('id', bid.id);
-      if (bidErr) throw bidErr;
       showToast(`${bid.bidder?.name ?? 'Buyer'} is your backup buyer`, 'success');
       await loadBids();
     } catch (err) {
       showToast(errorMessage(err, "Couldn't set the backup buyer."), 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // The sale fell through: hand it to the backup buyer, or put the item back up
+  const handleFallThrough = async (action: 'promote' | 'relist') => {
+    const backupName = bids.find((b) => b.status === 'backup')?.bidder?.name ?? 'your backup buyer';
+    const question =
+      action === 'promote'
+        ? `Sell to ${backupName} instead? Your current buyer will be told the deal is off.`
+        : 'Put this item back up for sale? Your current buyer will be told the deal is off, and the other offers become open again.';
+    if (!confirm(question)) return;
+
+    setActionLoading(action);
+    try {
+      const { error } =
+        action === 'promote'
+          ? await supabase.rpc('promote_backup_buyer', { p_listing: listingId })
+          : await supabase.rpc('relist_listing', { p_listing: listingId });
+      if (error) throw error;
+      showToast(action === 'promote' ? `${backupName} is now the buyer` : 'Your item is back up for sale', 'success');
+      await loadBids();
+      router.refresh();
+    } catch (err) {
+      showToast(errorMessage(err, "That didn't work. Please try again."), 'error');
     } finally {
       setActionLoading(null);
     }
@@ -158,6 +168,32 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
           No offers yet. You&apos;ll see them here as buyers send them.
         </div>
       ) : (
+        <>
+        {hasWinner && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/40 px-5 py-3 text-sm">
+            <span className="text-slate-400">Buyer didn&apos;t show up or backed out?</span>
+            <div className="flex flex-wrap gap-2">
+              {hasBackup && (
+                <button
+                  type="button"
+                  onClick={() => handleFallThrough('promote')}
+                  disabled={actionLoading !== null}
+                  className="btn-secondary px-3 py-1.5 text-sm"
+                >
+                  {actionLoading === 'promote' ? 'Switching...' : 'Sell to backup buyer'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleFallThrough('relist')}
+                disabled={actionLoading !== null}
+                className="btn-secondary px-3 py-1.5 text-sm"
+              >
+                {actionLoading === 'relist' ? 'Relisting...' : 'Relist item'}
+              </button>
+            </div>
+          </div>
+        )}
         <ul className="divide-y divide-slate-800">
           {bids.map((bid) => {
             const name = bid.bidder?.name ?? 'Student';
@@ -216,6 +252,7 @@ export default function BidDashboard({ listingId, askingPrice }: BidDashboardPro
             );
           })}
         </ul>
+        </>
       )}
     </section>
   );

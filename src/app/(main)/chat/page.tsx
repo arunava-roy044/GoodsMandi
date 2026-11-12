@@ -6,31 +6,16 @@ import { createClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/lib/utils';
 import { chatTimeLabel } from '@/lib/chat';
 
-type ChatParty = { id: string; name: string; profile_photo_url: string | null };
-
-type ConversationRow = {
-  listing_id: string;
-  sender_id: string;
-  message_text: string;
-  created_at: string;
-  listing: { title: string } | null;
-  sender: ChatParty | null;
-  recipient: ChatParty | null;
-};
-
 type Conversation = {
   listing_id: string;
   other_user_id: string;
   listing_title: string | null;
   other_user_name: string;
-  other_user_photo?: string;
+  other_user_photo: string | null;
   last_message: string;
   last_message_mine: boolean;
   last_message_time: string;
 };
-
-// Enough to cover every recent conversation without loading years of history
-const MESSAGE_LIMIT = 500;
 
 export default function ChatListPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -45,52 +30,22 @@ export default function ChatListPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: messages, error } = await supabase
-          .from('chat_messages')
-          .select(`
-            id,
-            listing_id,
-            sender_id,
-            recipient_id,
-            message_text,
-            created_at,
-            listing:listings ( title ),
-            sender:profiles!sender_id ( id, name, profile_photo_url ),
-            recipient:profiles!recipient_id ( id, name, profile_photo_url )
-          `)
-          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-          .order('created_at', { ascending: false })
-          .limit(MESSAGE_LIMIT);
+        // One row per conversation (listing + other person), newest first.
+        // listing_title is null when the listing was sold to someone else or removed.
+        const { data, error } = await supabase.rpc('get_my_conversations');
 
         if (error) {
-          console.error('Error fetching conversations:', error.message, error.code, error.details, error.hint);
+          console.error('Error fetching conversations:', error.message);
           setFetchError(error.message);
           return;
         }
 
-        // One row per conversation (listing + other person), newest message first
-        const convMap = new Map<string, Conversation>();
-        for (const msg of (messages as unknown as ConversationRow[] | null) ?? []) {
-          const isSender = msg.sender_id === user.id;
-          const otherUser = isSender ? msg.recipient : msg.sender;
-          if (!otherUser) continue;
-
-          const key = `${msg.listing_id}_${otherUser.id}`;
-          if (convMap.has(key)) continue;
-          convMap.set(key, {
-            listing_id: msg.listing_id,
-            other_user_id: otherUser.id,
-            // Null when the listing was sold to someone else or removed (hidden by RLS)
-            listing_title: msg.listing?.title ?? null,
-            other_user_name: otherUser.name || 'Student',
-            other_user_photo: otherUser.profile_photo_url ?? undefined,
-            last_message: msg.message_text,
-            last_message_mine: isSender,
-            last_message_time: msg.created_at,
-          });
-        }
-
-        setConversations(Array.from(convMap.values()));
+        setConversations(
+          ((data as Conversation[] | null) ?? []).map((conv) => ({
+            ...conv,
+            other_user_name: conv.other_user_name || 'Student',
+          }))
+        );
       } catch (err) {
         console.error('Error fetching conversations:', errorMessage(err));
         setFetchError(errorMessage(err, 'An unexpected error occurred'));

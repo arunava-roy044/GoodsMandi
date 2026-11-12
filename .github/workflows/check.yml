@@ -1,5 +1,5 @@
 # Runs on every pull request and every push to main.
-# If lint, the type check or the build fails, the PR shows a red X.
+# If lint, the type check, the build or the database tests fail, the PR shows a red X.
 name: Check
 
 on:
@@ -27,3 +27,18 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run build
+
+  # Applies every migration to a local Supabase database and runs the
+  # pgTAP tests in supabase/tests (row-level security, offers, bans, ...).
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+      - run: supabase db start
+      - run: supabase test db

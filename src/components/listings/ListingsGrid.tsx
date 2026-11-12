@@ -1,32 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ListingCard from './ListingCard';
-import { CATEGORY_OTHER, LISTING_CATEGORIES, isStandardCategory } from '@/lib/constants';
+import { createClient } from '@/lib/supabase/client';
+import { errorMessage } from '@/lib/utils';
+import { BROWSE_PAGE_SIZE, FILTER_CATEGORIES, isFilterCategory, type BrowseListing } from '@/lib/browse';
 
-type Profile = {
-  id: string;
-  name: string;
-  profile_photo_url: string;
-  rating_avg: number;
-};
-
-type Listing = {
-  id: string;
-  title: string;
-  description: string | null;
-  asking_price: number;
-  category: string;
-  product_age: string;
-  photos: string[];
-  status: string;
-  created_at: string;
-  seller_id: string;
-  seller: Profile;
-};
-
-type SortKey = 'newest' | 'price_low' | 'price_high';
+export type SortKey = 'newest' | 'price_low' | 'price_high';
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'newest', label: 'Newest first' },
@@ -35,21 +16,12 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 ];
 
 interface ListingsGridProps {
-  initialListings: Listing[];
+  initialListings: BrowseListing[];
+  initialTotal: number;
+  categoryCounts: Record<string, number>;
   fetchError?: string | null;
   initialCategory?: string;
   initialQuery?: string;
-}
-
-const FILTER_CATEGORIES = [...LISTING_CATEGORIES, CATEGORY_OTHER] as string[];
-
-function isCategory(value: string | undefined): value is string {
-  return !!value && FILTER_CATEGORIES.includes(value);
-}
-
-// Listings with a seller-typed tag are grouped under "Others"
-function filterGroup(category: string): string {
-  return isStandardCategory(category) ? category : CATEGORY_OTHER;
 }
 
 // Keep the filters in the address bar so a filtered view can be shared or refreshed.
@@ -62,10 +34,81 @@ function syncUrl(category: string, query: string) {
   window.history.replaceState(null, '', search ? `/listings?${search}` : '/listings');
 }
 
-export default function ListingsGrid({ initialListings, fetchError, initialCategory, initialQuery }: ListingsGridProps) {
+export default function ListingsGrid({
+  initialListings,
+  initialTotal,
+  categoryCounts,
+  fetchError,
+  initialCategory,
+  initialQuery,
+}: ListingsGridProps) {
+  const [supabase] = useState(() => createClient());
   const [searchQuery, setSearchQuery] = useState(initialQuery ?? '');
-  const [selectedCategory, setSelectedCategory] = useState<string>(isCategory(initialCategory) ? initialCategory : 'All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(isFilterCategory(initialCategory) ? initialCategory : 'All');
   const [sortBy, setSortBy] = useState<SortKey>('newest');
+  const [listings, setListings] = useState<BrowseListing[]>(initialListings);
+  const [total, setTotal] = useState(initialTotal);
+  const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(fetchError ?? null);
+  const requestId = useRef(0);
+  // The filters the shown list was loaded for (the server loaded the first page)
+  const loadedKey = useRef(`${(initialQuery ?? '').trim()}|${isFilterCategory(initialCategory) ? initialCategory : 'All'}|newest`);
+
+  const fetchPage = async (query: string, category: string, sort: SortKey, offset: number) => {
+    const { data, error } = await supabase.rpc('search_listings', {
+      p_query: query.trim(),
+      p_category: category === 'All' ? null : category,
+      p_sort: sort,
+      p_limit: BROWSE_PAGE_SIZE,
+      p_offset: offset,
+    });
+    if (error) throw error;
+    const rows = (data as BrowseListing[] | null) ?? [];
+    return { rows, total: rows.length > 0 ? Number(rows[0].total_count ?? rows.length) : 0 };
+  };
+
+  // Filters changed: load the first page again (the search box waits until typing pauses)
+  useEffect(() => {
+    const key = `${searchQuery.trim()}|${selectedCategory}|${sortBy}`;
+    if (key === loadedKey.current) return;
+    const id = ++requestId.current;
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const page = await fetchPage(searchQuery, selectedCategory, sortBy, 0);
+        if (id !== requestId.current) return; // a newer search started
+        loadedKey.current = key;
+        setListings(page.rows);
+        setTotal(page.total);
+        setSearchError(null);
+      } catch (err) {
+        if (id === requestId.current) setSearchError(errorMessage(err, "Couldn't load listings"));
+      } finally {
+        if (id === requestId.current) setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPage only reads the latest filters it is given
+  }, [searchQuery, selectedCategory, sortBy]);
+
+  const loadMore = async () => {
+    const id = requestId.current;
+    setLoadingMore(true);
+    try {
+      const page = await fetchPage(searchQuery, selectedCategory, sortBy, listings.length);
+      if (id !== requestId.current) return;
+      setListings((prev) => {
+        const seen = new Set(prev.map((l) => l.id));
+        return [...prev, ...page.rows.filter((l) => !seen.has(l.id))];
+      });
+      setTotal(page.total);
+    } catch (err) {
+      setSearchError(errorMessage(err, "Couldn't load more listings"));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const chooseCategory = (category: string) => {
     setSelectedCategory(category);
@@ -83,33 +126,8 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
     syncUrl('All', '');
   };
 
-  // How many listings each category has, for the chip counts
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const listing of initialListings) {
-      const group = filterGroup(listing.category);
-      counts[group] = (counts[group] ?? 0) + 1;
-    }
-    return counts;
-  }, [initialListings]);
-
-  const visibleListings = useMemo(() => {
-    const words = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    const filtered = initialListings.filter((listing) => {
-      if (selectedCategory !== 'All' && filterGroup(listing.category) !== selectedCategory) return false;
-      if (words.length === 0) return true;
-      const haystack = `${listing.title} ${listing.description ?? ''} ${listing.category}`.toLowerCase();
-      // Every word has to match somewhere, so "casio calculator" finds "Calculator, Casio fx-991"
-      return words.every((word) => haystack.includes(word));
-    });
-
-    return filtered.sort((a, b) => {
-      if (sortBy === 'price_low') return a.asking_price - b.asking_price;
-      if (sortBy === 'price_high') return b.asking_price - a.asking_price;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-  }, [initialListings, searchQuery, selectedCategory, sortBy]);
-
+  const allCount = Object.values(categoryCounts).reduce((sum, n) => sum + n, 0);
+  const visibleListings = listings;
   const hasFilters = selectedCategory !== 'All' || searchQuery.trim() !== '';
 
   const chipClass = (active: boolean) =>
@@ -185,7 +203,7 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible">
         <button type="button" onClick={() => chooseCategory('All')} className={chipClass(selectedCategory === 'All')}>
           All
-          <span className="text-slate-500">{initialListings.length}</span>
+          <span className="text-slate-500">{allCount}</span>
         </button>
         {FILTER_CATEGORIES.map((category) => (
           <button
@@ -200,7 +218,7 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
         ))}
       </div>
 
-      {fetchError ? (
+      {searchError ? (
         <EmptyState
           title="Couldn't load listings"
           body="Something went wrong on our side. Refresh the page to try again."
@@ -209,9 +227,9 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
               Refresh
             </button>
           }
-          detail={fetchError}
+          detail={searchError}
         />
-      ) : initialListings.length === 0 ? (
+      ) : allCount === 0 && !hasFilters ? (
         <EmptyState
           title="Nothing for sale yet"
           body="Be the first to list something. It takes about a minute."
@@ -221,7 +239,7 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
             </Link>
           }
         />
-      ) : visibleListings.length === 0 ? (
+      ) : visibleListings.length === 0 && !searching ? (
         <EmptyState
           title="No matches"
           body={
@@ -238,8 +256,8 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
       ) : (
         <>
           <div className="flex items-center justify-between text-sm text-slate-400">
-            <span>
-              {visibleListings.length} {visibleListings.length === 1 ? 'listing' : 'listings'}
+            <span aria-live="polite">
+              {searching ? 'Searching...' : <>{total} {total === 1 ? 'listing' : 'listings'}</>}
               {selectedCategory !== 'All' && <> in <span className="text-slate-200">{selectedCategory}</span></>}
             </span>
             {hasFilters && (
@@ -248,11 +266,18 @@ export default function ListingsGrid({ initialListings, fetchError, initialCateg
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-opacity ${searching ? 'opacity-60' : ''}`}>
             {visibleListings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>
+          {visibleListings.length < total && (
+            <div className="flex justify-center pt-2">
+              <button type="button" onClick={loadMore} disabled={loadingMore || searching} className="btn-secondary">
+                {loadingMore ? 'Loading...' : `Show more (${total - visibleListings.length} left)`}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
