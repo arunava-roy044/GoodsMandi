@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import ListingsGrid from '@/components/listings/ListingsGrid';
+import { BROWSE_PAGE_SIZE, isFilterCategory, type BrowseListing } from '@/lib/browse';
 import Link from 'next/link';
 
 export const metadata = {
@@ -14,18 +15,30 @@ export default async function ListingsPage({
 }) {
   const { category, q } = await searchParams;
   const supabase = await createClient();
-  
-  const { data: listings, error } = await supabase
-    .from('listings')
-    .select(`
-      *,
-      seller:profiles!seller_id(id, name, profile_photo_url, rating_avg)
-    `)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+  const startCategory = isFilterCategory(category) ? category : null;
 
+  // First page and the category counts; the grid loads the rest as people search and scroll
+  const [listingsResult, countsResult] = await Promise.all([
+    supabase.rpc('search_listings', {
+      p_query: q?.trim() ?? '',
+      p_category: startCategory,
+      p_sort: 'newest',
+      p_limit: BROWSE_PAGE_SIZE,
+      p_offset: 0,
+    }),
+    supabase.rpc('listing_category_counts'),
+  ]);
+
+  const error = listingsResult.error ?? countsResult.error;
   if (error) {
     console.error('Error fetching listings:', error.message, error.code, error.details, error.hint);
+  }
+
+  const listings = (listingsResult.data as BrowseListing[] | null) ?? [];
+  const total = listings.length > 0 ? Number(listings[0].total_count ?? listings.length) : 0;
+  const categoryCounts: Record<string, number> = {};
+  for (const row of (countsResult.data as { category: string; listings: number }[] | null) ?? []) {
+    categoryCounts[row.category] = Number(row.listings);
   }
 
   return (
@@ -46,7 +59,9 @@ export default async function ListingsPage({
       {/* key: start fresh when the URL filters change through a link (e.g. the Browse nav link) */}
       <ListingsGrid
         key={`${category ?? ''}|${q ?? ''}`}
-        initialListings={listings || []}
+        initialListings={listings}
+        initialTotal={total}
+        categoryCounts={categoryCounts}
         fetchError={error ? error.message : null}
         initialCategory={category}
         initialQuery={q}

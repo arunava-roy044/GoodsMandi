@@ -131,6 +131,37 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
     }
   };
 
+  // Only a waiting offer can be taken back
+  const canWithdraw = !!existingBid && existingBid.status === 'pending';
+
+  const handleWithdraw = async () => {
+    if (!confirm('Withdraw your offer? The seller will no longer see it.')) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: withdrawError } = await createClient().rpc('withdraw_offer', { p_listing: listing.id });
+      if (withdrawError) throw withdrawError;
+      showToast('Offer withdrawn', 'success');
+      onClose();
+      router.refresh();
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't withdraw your offer. Please try again."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const withdrawButton = canWithdraw && (
+    <button
+      type="button"
+      onClick={handleWithdraw}
+      disabled={loading}
+      className="w-full text-center text-sm text-slate-400 hover:text-red-400"
+    >
+      Withdraw my offer
+    </button>
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -154,9 +185,11 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
                 ? `The seller has already responded to your offer of ${formatPrice(Number(existingBid?.bid_amount))}.`
                 : `You've changed your offer ${MAX_BID_ATTEMPTS} times, which is the limit. Your offer of ${formatPrice(Number(existingBid?.bid_amount))} stands.`}
             </div>
-            <button type="button" onClick={onClose} className="btn-secondary w-full">
+            {error && <p className="text-sm text-red-400" role="alert">{error}</p>}
+            <button type="button" onClick={onClose} className="btn-secondary w-full" disabled={loading}>
               Close
             </button>
+            {withdrawButton}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -201,6 +234,7 @@ export default function BidModal({ listing, isOpen, onClose }: BidModalProps) {
                 {loading ? 'Sending...' : existingBid ? 'Update offer' : 'Send offer'}
               </button>
             </div>
+            {withdrawButton}
           </form>
         )}
       </div>

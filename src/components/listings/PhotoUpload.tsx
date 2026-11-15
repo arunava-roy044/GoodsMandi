@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { MAX_PHOTOS_PER_LISTING } from '@/lib/constants';
+import { PHOTO_PICK_MAX_MB } from '@/lib/images';
 
 interface PhotoUploadProps {
   photos: File[];
@@ -10,7 +11,8 @@ interface PhotoUploadProps {
 }
 
 const MAX_PHOTOS = MAX_PHOTOS_PER_LISTING;
-const MAX_SIZE_MB = 5;
+// Photos are shrunk before upload, so big camera originals are fine
+const MAX_SIZE_MB = PHOTO_PICK_MAX_MB;
 
 export default function PhotoUpload({ photos, onChange, disabled = false }: PhotoUploadProps) {
   const [isDragging, setIsDragging] = useState(false);

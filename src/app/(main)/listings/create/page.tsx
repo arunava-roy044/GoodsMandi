@@ -16,12 +16,14 @@ import {
 } from '@/lib/constants';
 import PhotoUpload from '@/components/listings/PhotoUpload';
 import { errorMessage, formatPrice } from '@/lib/utils';
+import { PHOTO_CACHE_SECONDS, STORAGE_MAX_BYTES, prepareImage } from '@/lib/images';
 
 const TITLE_MIN = 3;
 const TITLE_MAX = 80;
 const DESCRIPTION_MAX = 300;
 const PRICE_MAX = 500000;
 const PHOTO_BUCKET = 'listing-photos';
+const LISTING_PHOTO_MAX_SIDE = 1600;
 
 // Whole-word match, so "drum" doesn't trip "rum" and "begun" doesn't trip "gun"
 function findFlaggedWords(text: string): string[] {
@@ -30,12 +32,6 @@ function findFlaggedWords(text: string): string[] {
     const escaped = keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(`\\b${escaped}s?\\b`).test(lower);
   });
-}
-
-function fileExtension(file: File): string {
-  const fromName = file.name.includes('.') ? file.name.split('.').pop() : '';
-  const fromType = file.type.split('/')[1];
-  return (fromName || fromType || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
 }
 
 function chipClass(active: boolean) {
@@ -116,11 +112,17 @@ export default function CreateListingPage() {
 
       const photoUrls: string[] = [];
       for (const [index, file] of photos.entries()) {
+        setStatus(`Preparing photo ${index + 1} of ${photos.length}...`);
+        // Resized and compressed here, so buyers on mobile data load small files
+        const image = await prepareImage(file, LISTING_PHOTO_MAX_SIDE);
+        if (image.body.size > STORAGE_MAX_BYTES) {
+          throw new Error(`Photo ${index + 1} is too large. Try a JPEG or PNG under 5 MB.`);
+        }
         setStatus(`Uploading photo ${index + 1} of ${photos.length}...`);
-        const filePath = `${userId}/${crypto.randomUUID()}.${fileExtension(file)}`;
+        const filePath = `${userId}/${crypto.randomUUID()}.${image.extension}`;
         const { error: uploadError } = await supabase.storage
           .from(PHOTO_BUCKET)
-          .upload(filePath, file, { contentType: file.type || undefined });
+          .upload(filePath, image.body, { contentType: image.contentType, cacheControl: PHOTO_CACHE_SECONDS });
         if (uploadError) throw new Error(`Photo ${index + 1} didn't upload: ${uploadError.message}`);
         uploadedPaths.push(filePath);
         photoUrls.push(supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filePath).data.publicUrl);

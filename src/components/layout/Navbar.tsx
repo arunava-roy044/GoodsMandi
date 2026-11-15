@@ -9,6 +9,7 @@ import type { User } from '@supabase/supabase-js'
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [unread, setUnread] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
@@ -33,6 +34,34 @@ export default function Navbar() {
 
     return () => subscription.unsubscribe()
   }, [supabase, pathname])
+
+  // Unread notifications: counted on each page change, and live while the tab is open
+  const userId = user?.id
+  useEffect(() => {
+    if (!userId) return
+    const loadUnread = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .is('read_at', null)
+      setUnread(count ?? 0)
+    }
+    loadUnread()
+
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        () => loadUnread()
+      )
+      .subscribe()
+    window.addEventListener('notifications-read', loadUnread)
+    return () => {
+      window.removeEventListener('notifications-read', loadUnread)
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, userId, pathname])
 
   // Close the mobile menu when tapping outside the navbar
   useEffect(() => {
@@ -90,6 +119,29 @@ export default function Navbar() {
     </span>
   )
 
+  const onNotifications = pathname.startsWith('/notifications')
+  const unreadShown = user ? unread : 0
+  const bell = (
+    <Link
+      href="/notifications"
+      aria-label={unreadShown > 0 ? `Notifications, ${unreadShown} unread` : 'Notifications'}
+      title="Notifications"
+      onClick={() => setMobileMenuOpen(false)}
+      className={`relative h-8 w-8 shrink-0 rounded-full flex items-center justify-center border transition-colors ${
+        onNotifications ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300' : 'border-slate-700 text-slate-300 hover:text-white hover:border-slate-500'
+      }`}
+    >
+      <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      {unreadShown > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 px-1 text-[11px] font-semibold leading-[18px] text-white text-center">
+          {unreadShown > 9 ? '9+' : unreadShown}
+        </span>
+      )}
+    </Link>
+  )
+
   const cornerLink = onProfile
     ? { href: '/profile/settings', label: 'Settings', icon: gear }
     : { href: '/profile', label: 'Your profile', icon: avatar }
@@ -121,7 +173,8 @@ export default function Navbar() {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center ml-6">
+          <div className="hidden md:flex items-center gap-3 ml-6">
+            {user && bell}
             {user ? (
               <Link
                 href={cornerLink.href}
@@ -144,6 +197,7 @@ export default function Navbar() {
           </div>
 
           <div className="-mr-2 flex items-center gap-1 md:hidden">
+            {user && <span className="p-1.5">{bell}</span>}
             {user && (
               <Link href={cornerLink.href} aria-label={cornerLink.label} className="p-1.5" onClick={() => setMobileMenuOpen(false)}>
                 {cornerLink.icon}

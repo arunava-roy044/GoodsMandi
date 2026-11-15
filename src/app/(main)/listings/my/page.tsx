@@ -73,7 +73,8 @@ export default async function MyListingsPage() {
                 <div className="absolute top-3 right-3">
                   {listing.status === 'active' && <span className="badge-success shadow-lg">Active</span>}
                   {listing.status === 'sold' && <span className="badge shadow-lg text-amber-950 bg-amber-400">Sold</span>}
-                  {listing.status === 'removed' && <span className="badge-danger shadow-lg">Removed</span>}
+                  {listing.status === 'removed' && listing.removed_reason === 'expired' && <span className="badge-warning shadow-lg">Expired: tap to renew</span>}
+                  {listing.status === 'removed' && listing.removed_reason !== 'expired' && <span className="badge-danger shadow-lg">Removed</span>}
                 </div>
               </div>
               

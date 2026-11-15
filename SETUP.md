@@ -25,6 +25,29 @@
 
 This creates all tables, enums, triggers, RLS policies, and storage buckets.
 
+**New Supabase project?** Photo links are only accepted from this project's storage. After running the migrations, point the check at your project (replace `<project-ref>`):
+
+```sql
+UPDATE public.app_config
+SET value = 'https://<project-ref>.supabase.co/storage/v1/object/public/'
+WHERE key = 'storage_public_url';
+```
+
+**Daily listing expiry:** listings with no new offers for 60 days are expired by a daily `pg_cron` job, which the migrations turn on and schedule. If your database doesn't offer pg_cron, the migration prints a notice instead; then call `SELECT public.expire_stale_listings();` once a day some other way.
+
+---
+
+## Local database and tests (optional)
+
+With [Docker](https://docs.docker.com/get-docker/) and the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) installed:
+
+```bash
+supabase db start   # local Postgres with every migration applied
+supabase test db    # runs the pgTAP tests in supabase/tests
+```
+
+The same tests run on every pull request (`.github/workflows/check.yml`). When you change a database rule, add a test for it in `supabase/tests/database/`.
+
 ---
 
 ## Step 3: Configure Authentication
