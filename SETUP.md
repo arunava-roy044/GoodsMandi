@@ -122,6 +122,8 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 4. Deploy!
 5. Update your Supabase **Site URL** and **Redirect URLs** to your Vercel domain
 
+`vercel.json` pins the server to **Mumbai (`bom1`)**, next to the Supabase project (`ap-south-1`). Keep the two in the same region: every signed-in page makes several database calls, and each one crosses the distance between them.
+
 ---
 
 ## Tech Stack
