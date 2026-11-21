@@ -114,6 +114,28 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ---
 
+## Privacy, consent and the Privacy & data admin panel
+
+These support the Digital Personal Data Protection Act, 2023.
+
+**Before launch, fill in `src/lib/legal.ts`:** the name of the person or entity running GoodsMandi (the "Data Fiduciary"), the Grievance Officer's name, and a support email on your own domain. Until you do, the Privacy Notice shows `[CONFIRM: ...]` in those places. Have a lawyer read the notice (`src/lib/privacyNotice.ts`, English and Hindi) and the Terms. When the notice changes in a way people must agree to again, raise `PRIVACY_NOTICE_VERSION`.
+
+**What the site does:**
+- Sign-up needs three tick-boxes (18 or older, Terms, Privacy Notice). The database refuses an account without them and keeps a record (notice version, time) in `consent_records`.
+- Settings has **Download my data**, **Privacy request or complaint** and **Delete account**. Deleting an account also removes the person's photo files.
+- Requests and complaints go to the admin panel at `/admin/privacy`, with a due date 15 days out. Admins reply there and the student is notified. The panel also shows consent records and has a log for data incidents.
+
+**Deploying these changes (in this order):**
+1. Deploy the Edge Function that deletes accounts and photos: `supabase functions deploy delete-account` (or from the Supabase dashboard under Edge Functions). It needs no secrets; Supabase provides the keys.
+2. Merge and deploy the website.
+3. Run the migration `20261121120000_privacy_compliance.sql` right after step 2. It makes sign-up refuse accounts without consent, and removes the old `delete_my_account()` that the previous website version called.
+
+**Creating accounts by hand** (for example test accounts through the Supabase dashboard or the admin API): the database now refuses a new account unless its user metadata contains `adult_confirmed: true`, `terms_accepted: true` and `privacy_notice_version`. With the admin API, pass them as `user_metadata`.
+
+**Accounts that existed before this change** have no consent record. They are listed under Consent in the admin panel so you can ask them to review the notice.
+
+---
+
 ## Deployment to Vercel
 
 1. Push this repo to GitHub

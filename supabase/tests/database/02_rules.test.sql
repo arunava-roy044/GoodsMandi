@@ -48,14 +48,14 @@ END;
 $$;
 
 -- Users: a admin, b seller, c buyer, d second buyer
-INSERT INTO auth.users (id, email) VALUES
-    ('00000000-0000-0000-0000-00000000000a', 'admin@stu.upes.ac.in'),
-    ('00000000-0000-0000-0000-00000000000b', 'seller@stu.upes.ac.in'),
-    ('00000000-0000-0000-0000-00000000000c', 'buyer@stu.upes.ac.in'),
-    ('00000000-0000-0000-0000-00000000000d', 'buyer2@stu.upes.ac.in');
+INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
+    ('00000000-0000-0000-0000-00000000000a', 'admin@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb),
+    ('00000000-0000-0000-0000-00000000000b', 'seller@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb),
+    ('00000000-0000-0000-0000-00000000000c', 'buyer@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb),
+    ('00000000-0000-0000-0000-00000000000d', 'buyer2@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb);
 UPDATE public.profiles SET is_admin = true WHERE id = '00000000-0000-0000-0000-00000000000a';
 
-SELECT plan(61);
+SELECT plan(62);
 
 -- Signup and profiles
 SELECT throws_like($$INSERT INTO auth.users (email) VALUES ('someone@gmail.com')$$,
@@ -215,10 +215,12 @@ SELECT is(tests.run_as('00000000-0000-0000-0000-00000000000c',
     'ok', 'buyer makes an offer');
 SELECT ok(listing_photo_locked('00000000-0000-0000-0000-00000000000b/calc.jpg'), 'photos are locked once there is an offer');
 
--- Account deletion
-SELECT is(tests.run_as('00000000-0000-0000-0000-00000000000c', $$SELECT delete_my_account()$$), 'ok', 'user deletes their account');
+-- Account deletion: done by the delete-account Edge Function; the database side is the cascade
+SELECT hasnt_function('public', 'delete_my_account', 'account deletion goes through the Edge Function, not a database call');
+DELETE FROM auth.users WHERE id = '00000000-0000-0000-0000-00000000000c';
 SELECT ok(NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-00000000000c'), 'auth user is gone');
 SELECT ok(NOT EXISTS (SELECT 1 FROM bids WHERE bidder_id = '00000000-0000-0000-0000-00000000000c'), 'their offers are gone');
+SELECT ok(NOT EXISTS (SELECT 1 FROM consent_records WHERE user_id = '00000000-0000-0000-0000-00000000000c'), 'their consent record is gone');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -191,6 +191,9 @@ export default function AdminDashboard() {
             Admin Control Panel
           </h1>
           <p className="text-slate-400 mt-1">Manage community reports and moderation</p>
+          <Link href="/admin/privacy" className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:border-slate-500 hover:text-white">
+            Privacy &amp; data: requests, consent, incidents &rarr;
+          </Link>
         </div>
         
         <div className="flex gap-4">

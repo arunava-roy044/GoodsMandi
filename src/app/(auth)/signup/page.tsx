@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { errorMessage } from '@/lib/utils'
+import { PRIVACY_NOTICE_VERSION } from '@/lib/legal'
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
@@ -15,6 +16,8 @@ export default function SignupPage() {
   const [yearOfStudy, setYearOfStudy] = useState('1')
   const [branchCourse, setBranchCourse] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
+  const [confirmedAdult, setConfirmedAdult] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   
@@ -30,8 +33,18 @@ export default function SignupPage() {
       return
     }
     
+    if (!confirmedAdult) {
+      showToast('GoodsMandi is only for people who are 18 or older', 'error')
+      return
+    }
+
     if (!acceptedTerms) {
       showToast('You must accept the terms of service', 'error')
+      return
+    }
+
+    if (!acceptedPrivacy) {
+      showToast('You must read the Privacy Notice and agree to it', 'error')
       return
     }
 
@@ -46,6 +59,10 @@ export default function SignupPage() {
             full_name: fullName.trim(),
             year_of_study: parseInt(yearOfStudy),
             branch_course: branchCourse.trim(),
+            // Saved with your account as a record of what you agreed to
+            adult_confirmed: true,
+            terms_accepted: true,
+            privacy_notice_version: PRIVACY_NOTICE_VERSION,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
@@ -174,17 +191,43 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <div className="flex items-start mt-2">
-          <input
-            type="checkbox"
-            id="terms"
-            checked={acceptedTerms}
-            onChange={(e) => setAcceptedTerms(e.target.checked)}
-            className="mt-1 mr-2 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-900"
-          />
-          <label htmlFor="terms" className="text-sm text-slate-400">
-            I agree to the <Link href="/terms" className="text-emerald-400 hover:underline">Terms of Service</Link> and certify I am a student.
-          </label>
+        <div className="mt-2 space-y-3">
+          <div className="flex items-start">
+            <input
+              type="checkbox"
+              id="adult"
+              checked={confirmedAdult}
+              onChange={(e) => setConfirmedAdult(e.target.checked)}
+              className="mt-1 mr-2 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-900"
+            />
+            <label htmlFor="adult" className="text-sm text-slate-400">
+              I am 18 years old or older.
+            </label>
+          </div>
+          <div className="flex items-start">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-1 mr-2 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-900"
+            />
+            <label htmlFor="terms" className="text-sm text-slate-400">
+              I agree to the <Link href="/terms" target="_blank" className="text-emerald-400 hover:underline">Terms of Service</Link> and certify I am a UPES student.
+            </label>
+          </div>
+          <div className="flex items-start">
+            <input
+              type="checkbox"
+              id="privacy"
+              checked={acceptedPrivacy}
+              onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+              className="mt-1 mr-2 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-900"
+            />
+            <label htmlFor="privacy" className="text-sm text-slate-400">
+              I have read the <Link href="/privacy" target="_blank" className="text-emerald-400 hover:underline">Privacy Notice</Link> and I agree that GoodsMandi may use my name, college email, year, branch, photo, listings, offers, messages and ratings as it describes. I can withdraw this at any time by deleting my account.
+            </label>
+          </div>
         </div>
 
         <button

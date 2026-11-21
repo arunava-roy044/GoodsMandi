@@ -52,6 +52,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/signup');
   const isPublicRoute = request.nextUrl.pathname === '/' ||
     request.nextUrl.pathname.startsWith('/terms') ||
+    request.nextUrl.pathname === '/privacy' ||
     request.nextUrl.pathname.startsWith('/auth/callback');
 
   if (!user && !isAuthRoute && !isPublicRoute) {
