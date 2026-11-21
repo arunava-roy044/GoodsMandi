@@ -110,7 +110,17 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 1. Sign up through the app with your `@stu.upes.ac.in` email
 2. Go to Supabase Dashboard > **Table Editor > profiles**
 3. Find your user row and set `is_admin` to `true`
-4. You can now access the admin dashboard at `/admin`
+4. You can now access the admin dashboard at `/admin`.
+
+### What the admin panel covers (`/admin`)
+- **Overview:** what needs attention (reports, flagged listings, overdue privacy requests), counts of students, listings, offers and messages, and a 14-day chart. The tab bar shows badges for pending items.
+- **Users:** search everyone by name or college email, filter (new, warned, banned, admins), and open a person to see their listings, the reports against them and what admins did about them. From there you can ban or unban (a reason is required to ban), reset warnings, and make someone an admin or remove their admin rights. You can't change your own admin rights, and there is always at least one admin.
+- **Listings:** every listing, including sold and removed ones. Remove a listing, clear a flag, or restore a listing a moderator removed.
+- **Reports:** the queue of reports from students, and listings flagged for prohibited words.
+- **Privacy & data:** requests and complaints from students, consent records and the data-incident log (see the privacy section below).
+- **Activity:** a log of everything admins have done, with who, when and why.
+
+The database refuses every admin action to anyone who isn't an admin, and non-admins are turned away from `/admin` before the page is sent.
 
 ---
 

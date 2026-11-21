@@ -17,7 +17,8 @@ export type NotificationKind =
   | 'account_unbanned'
   | 'listing_removed'
   | 'listing_expired'
-  | 'privacy_request_update';
+  | 'privacy_request_update'
+  | 'listing_restored';
 
 export type AppNotification = {
   id: string;
@@ -64,6 +65,8 @@ export function notificationText(n: AppNotification): string {
       return `A moderator took down ${item}.`;
     case 'listing_expired':
       return `${item} expired after 60 days without new offers. Open it to renew.`;
+    case 'listing_restored':
+      return `A moderator put ${item} back up.`;
     case 'privacy_request_update':
       return 'There is an update on your privacy request. Open it to read our reply.';
     default:

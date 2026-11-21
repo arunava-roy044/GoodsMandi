@@ -78,7 +78,9 @@ export default function AdminPrivacyPage() {
   const [supabase] = useState(() => createClient());
 
   const [ready, setReady] = useState(false);
-  const [tab, setTab] = useState<Tab>('requests');
+  const [tab, setTab] = useState<Tab>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'incidents' ? 'incidents' : 'requests'
+  );
   const [showClosed, setShowClosed] = useState(false);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [requests, setRequests] = useState<AdminRequest[]>([]);
@@ -204,7 +206,7 @@ export default function AdminPrivacyPage() {
 
   if (!ready) {
     return (
-      <div className="max-w-5xl mx-auto" aria-busy="true">
+      <div aria-busy="true">
         <div className="skeleton mb-6 h-10 w-64" />
         <div className="glass-card skeleton h-40" />
       </div>
@@ -228,12 +230,8 @@ export default function AdminPrivacyPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <Link href="/admin" className="mb-3 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-        Admin
-      </Link>
-      <h1 className="text-3xl font-bold text-slate-100">Privacy &amp; data</h1>
+    <div>
+      <h2 className="text-2xl font-semibold text-slate-100">Privacy &amp; data</h2>
       <p className="mt-1 mb-6 text-slate-400">Requests and complaints from students, consent records, and data incidents.</p>
 
       {overview && (
