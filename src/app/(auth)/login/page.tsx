@@ -27,10 +27,19 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Where to go after logging in. Only same-site paths, so `next` can't send users to another host.
-  const nextPath = () => {
+  // Where the person asked to go (a link they followed before logging in). Only same-site
+  // paths, so `next` can't send users to another host. Null when they just opened the login page.
+  const requestedPath = () => {
     const next = new URLSearchParams(window.location.search).get('next')
-    return next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : '/listings'
+    return next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : null
+  }
+
+  // One login page for everyone: admins land on the admin side, students on the normal site
+  const landingPath = async () => {
+    const requested = requestedPath()
+    if (requested) return requested
+    const { data: isAdmin } = await supabase.rpc('is_admin')
+    return isAdmin === true ? '/admin' : '/listings'
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -51,7 +60,7 @@ export default function LoginPage() {
         }
       } else {
         showToast('Logged in', 'success')
-        router.push(nextPath())
+        router.push(await landingPath())
         router.refresh()
       }
     } catch {

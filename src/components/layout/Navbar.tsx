@@ -10,6 +10,7 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
@@ -22,14 +23,26 @@ export default function Navbar() {
       setPhotoUrl(data?.profile_photo_url ?? null)
     }
 
+    // Only admins get an Admin link. For everyone else the answer is false and nothing shows.
+    const loadAdmin = async () => {
+      const { data } = await supabase.rpc('is_admin')
+      setIsAdmin(data === true)
+    }
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
-      if (user) loadPhoto(user.id)
+      if (user) {
+        loadPhoto(user.id)
+        loadAdmin()
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (!session?.user) setPhotoUrl(null)
+      if (!session?.user) {
+        setPhotoUrl(null)
+        setIsAdmin(false)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -79,6 +92,7 @@ export default function Navbar() {
     { name: 'Browse', href: '/listings', exact: true },
     { name: 'Sell', href: '/listings/create', exact: true },
     { name: 'Chat', href: '/chat', exact: false },
+    ...(isAdmin ? [{ name: 'Admin', href: '/admin', exact: false }] : []),
   ]
 
   const isActiveLink = (link: { href: string; exact: boolean }) => {
