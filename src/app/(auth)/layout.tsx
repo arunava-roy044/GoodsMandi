@@ -13,7 +13,7 @@ export default function AuthLayout({
         <Link href="/" className="text-2xl font-semibold tracking-tight text-white">
           GoodsMandi
         </Link>
-        <p className="text-sm text-slate-500 mt-1">Buy and sell within UPES</p>
+        <p className="text-sm text-slate-500 mt-1">Buy and sell within your college</p>
       </div>
 
       <div className="w-full max-w-md px-4">

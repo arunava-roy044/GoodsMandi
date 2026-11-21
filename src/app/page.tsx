@@ -62,7 +62,7 @@ export default async function HomePage() {
             Buy and sell on campus.
           </h1>
           <p className="text-lg text-slate-400 mb-8">
-            A marketplace for UPES students. Books, gadgets, cycles and room stuff from people you can meet on campus.
+            A marketplace for college students. Books, gadgets, cycles and room stuff from people you can meet on campus.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/listings" className="btn-primary text-center">
@@ -74,7 +74,7 @@ export default async function HomePage() {
           </div>
           {!user && (
             <p className="mt-6 text-sm text-slate-500">
-              Sign up with your <span className="text-slate-300">@stu.upes.ac.in</span> email to get started.
+              Sign up with your <span className="text-slate-300">college email</span> to get started.
             </p>
           )}
         </section>

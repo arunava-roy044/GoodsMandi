@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between">
         <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
           <span className="text-base font-semibold text-white">GoodsMandi</span>
-          <p className="text-sm text-slate-500 mt-1">Buy and sell within the UPES student community.</p>
+          <p className="text-sm text-slate-500 mt-1">Buy and sell within your college community.</p>
         </div>
         
         <div className="flex space-x-6 text-sm">
