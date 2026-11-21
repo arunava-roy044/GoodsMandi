@@ -4,7 +4,6 @@ import Footer from '@/components/layout/Footer';
 import ListingCard from '@/components/listings/ListingCard';
 import { createClient } from '@/lib/supabase/server';
 import { CATEGORY_OTHER, LISTING_CATEGORIES } from '@/lib/constants';
-import { getSampleListings } from '@/lib/sampleListings';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,8 +50,6 @@ async function getHomeData() {
 
 export default async function HomePage() {
   const { user, recent, activeCount } = await getHomeData();
-  // Top the feed up with example products so the home page never looks empty
-  const samples = getSampleListings().slice(0, Math.max(0, FEED_SIZE - recent.length));
   const sellHref = user ? '/listings/create' : '/login?next=/listings/create';
 
   return (
@@ -120,19 +117,32 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {recent.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-            {samples.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} sample />
-            ))}
-          </div>
-
-          {samples.length > 0 && (
-            <p className="mt-4 text-xs text-slate-500">
-              Cards marked <span className="text-amber-300">Example</span> show what a listing looks like. They aren&apos;t real items.
-            </p>
+          {recent.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {recent.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-800 bg-slate-900/50 px-6 py-12 text-center">
+              {user ? (
+                <>
+                  <p className="text-base font-medium text-white">No items for sale yet</p>
+                  <p className="mt-1 text-sm text-slate-400">Be the first to list something for other students.</p>
+                  <Link href="/listings/create" className="btn-primary inline-block mt-5">
+                    Sell an item
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-base font-medium text-white">Listings are visible to signed-in students</p>
+                  <p className="mt-1 text-sm text-slate-400">Log in or sign up with your college email to see what&apos;s for sale.</p>
+                  <Link href="/login" className="btn-primary inline-block mt-5">
+                    Log in
+                  </Link>
+                </>
+              )}
+            </div>
           )}
         </section>
       </main>
