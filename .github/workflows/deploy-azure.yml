@@ -1,5 +1,6 @@
 # Builds the site and deploys it to Azure App Service.
-# Runs on every push to main, and by hand from the Actions tab ("Run workflow").
+# Runs by hand only (Actions tab, "Run workflow"). The site currently runs on a VM instead
+# (see deploy-vm.yml); re-add the push trigger below if you move back to App Service.
 #
 # One-time setup (details in SETUP.md, "Hosting on Azure App Service"):
 #   Repository variable  AZURE_WEBAPP_NAME             the App Service name
@@ -9,8 +10,6 @@
 name: Deploy to Azure
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:

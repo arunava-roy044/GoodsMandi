@@ -1,0 +1,113 @@
+# Builds the site and deploys it to the Azure VM over SSH.
+# Runs on every push to main, and by hand from the Actions tab ("Run workflow").
+# It stays skipped until the repository variable VM_HOST is set.
+#
+# One-time setup (details in SETUP.md, "Hosting on an Azure VM"):
+#   Repository variable  VM_HOST                       the VM's DNS name or public IP
+#   Repository variable  VM_USER                       'deploy' (made by infra/vm/setup.sh)
+#   Repository secret    VM_SSH_KEY                    the PRIVATE half of the deploy key
+#   Repository secret    NEXT_PUBLIC_SUPABASE_URL      same value as in .env.local
+#   Repository secret    NEXT_PUBLIC_SUPABASE_ANON_KEY same value as in .env.local
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ vars.VM_HOST != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      # NEXT_PUBLIC_* values are baked into the browser code during the build
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      BUILD_STANDALONE: '1'
+      VM_HOST: ${{ vars.VM_HOST }}
+      VM_USER: ${{ vars.VM_USER || 'deploy' }}
+      VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the setup
+        run: |
+          missing=0
+          for name in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY VM_SSH_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::Repository secret $name is not set"; missing=1; fi
+          done
+          exit $missing
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # The standalone server expects the static files next to it
+      - name: Package the build
+        run: |
+          mkdir -p deploy/.next
+          cp -r .next/standalone/. deploy/
+          cp -r .next/static deploy/.next/static
+          cp -r public deploy/public
+          tar -czf release.tgz -C deploy .
+
+      - name: Trust the VM and load the key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -T 15 -H "$VM_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload
+        run: |
+          scp -i ~/.ssh/deploy_key -o BatchMode=yes release.tgz \
+            "$VM_USER@$VM_HOST:/tmp/release-${GITHUB_SHA}.tgz"
+
+      # Unpack into a new folder, switch the 'current' link, restart, and go back
+      # to the previous release if the site does not answer.
+      - name: Switch over
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$VM_USER@$VM_HOST" \
+            "SHA=$GITHUB_SHA bash -s" <<'REMOTE'
+          set -euo pipefail
+          base=/opt/goodsmandi
+          rel="$base/releases/$SHA"
+          rm -rf "$rel"; mkdir -p "$rel"
+          tar -xzf "/tmp/release-$SHA.tgz" -C "$rel"
+          rm -f "/tmp/release-$SHA.tgz"
+
+          prev=$(readlink -f "$base/current" 2>/dev/null || true)
+          ln -sfn "$rel" "$base/current"
+          sudo systemctl restart goodsmandi
+
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/login || true)
+            if [ "$code" = "200" ]; then ok=1; break; fi
+            sleep 2
+          done
+
+          if [ "$ok" != "1" ]; then
+            echo "New release did not answer (last status: $code). Rolling back."
+            if [ -n "$prev" ] && [ -d "$prev" ]; then
+              ln -sfn "$prev" "$base/current"
+              sudo systemctl restart goodsmandi
+            fi
+            exit 1
+          fi
+
+          # keep the 3 newest releases
+          ls -1dt "$base"/releases/*/ | tail -n +4 | xargs -r rm -rf
+          echo "Deployed $SHA"
+          REMOTE
