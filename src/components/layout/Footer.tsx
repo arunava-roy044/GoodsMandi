@@ -13,6 +13,9 @@ export default function Footer() {
           <Link href="/terms" className="text-slate-400 hover:text-white transition-colors">
             Terms of Service
           </Link>
+          <Link href="/privacy" className="text-slate-400 hover:text-white transition-colors">
+            Privacy Notice
+          </Link>
           <span className="text-slate-400">
             &copy; {new Date().getFullYear()} GoodsMandi
           </span>

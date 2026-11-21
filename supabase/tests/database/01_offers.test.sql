@@ -47,11 +47,11 @@ END;
 $$;
 
 -- Users: a admin, b seller, c buyer, d second buyer
-INSERT INTO auth.users (id, email) VALUES
-    ('00000000-0000-0000-0000-00000000000a', 'admin@stu.upes.ac.in'),
-    ('00000000-0000-0000-0000-00000000000b', 'seller@stu.upes.ac.in'),
-    ('00000000-0000-0000-0000-00000000000c', 'buyer@stu.upes.ac.in'),
-    ('00000000-0000-0000-0000-00000000000d', 'buyer2@stu.upes.ac.in');
+INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
+    ('00000000-0000-0000-0000-00000000000a', 'admin@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb),
+    ('00000000-0000-0000-0000-00000000000b', 'seller@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb),
+    ('00000000-0000-0000-0000-00000000000c', 'buyer@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb),
+    ('00000000-0000-0000-0000-00000000000d', 'buyer2@stu.upes.ac.in', '{"adult_confirmed":true,"terms_accepted":true,"privacy_notice_version":"test"}'::jsonb);
 UPDATE public.profiles SET is_admin = true WHERE id = '00000000-0000-0000-0000-00000000000a';
 
 SELECT plan(32);

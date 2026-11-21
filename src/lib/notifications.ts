@@ -16,7 +16,8 @@ export type NotificationKind =
   | 'account_banned'
   | 'account_unbanned'
   | 'listing_removed'
-  | 'listing_expired';
+  | 'listing_expired'
+  | 'privacy_request_update';
 
 export type AppNotification = {
   id: string;
@@ -63,6 +64,8 @@ export function notificationText(n: AppNotification): string {
       return `A moderator took down ${item}.`;
     case 'listing_expired':
       return `${item} expired after 60 days without new offers. Open it to renew.`;
+    case 'privacy_request_update':
+      return 'There is an update on your privacy request. Open it to read our reply.';
     default:
       return 'You have a new notification.';
   }
@@ -72,6 +75,7 @@ export function notificationHref(n: AppNotification): string {
   if (n.kind === 'new_message' && n.listing_id && n.actor_id) {
     return `/chat/${n.listing_id}/${n.actor_id}`;
   }
+  if (n.kind === 'privacy_request_update') return '/privacy/request';
   if (n.listing_id) return `/listings/${n.listing_id}`;
   return '/profile';
 }

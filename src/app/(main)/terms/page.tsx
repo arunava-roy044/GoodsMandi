@@ -1,12 +1,12 @@
 import Link from 'next/link';
+import { GRIEVANCE_OFFICER_NAME, SUPPORT_EMAIL } from '@/lib/legal';
 
 export const metadata = {
   title: 'Terms of Service | GoodsMandi',
   description: 'The rules for buying and selling on GoodsMandi.',
 };
 
-const LAST_UPDATED = 'November 8, 2026';
-const SUPPORT_EMAIL = 'goodsmandi.support@gmail.com';
+const LAST_UPDATED = 'November 21, 2026';
 
 type Clause = string | { text: string; list: string[] };
 type Section = { title: string; clauses: Clause[] };
@@ -16,7 +16,7 @@ const SECTIONS: Section[] = [
     title: 'Who can use GoodsMandi',
     clauses: [
       'GoodsMandi ("the Platform", "we") is open only to currently enrolled students of UPES who sign up with a valid @stu.upes.ac.in email address and confirm it.',
-      'By signing up you confirm that you are a currently enrolled UPES student, that the details you give us (name, year, branch) are true, and that you are at least 18 years old, or that a parent or guardian has agreed to you using the Platform.',
+      'By signing up you confirm that you are a currently enrolled UPES student, that the details you give us (name, year, branch) are true, and that you are at least 18 years old. GoodsMandi is not for anyone under 18. If we find that an account belongs to someone under 18, we will close it and erase its data.',
       'One person may have only one account. You may not share, sell, lend or transfer your account, or use someone else\'s.',
       'You are responsible for everything done through your account and for keeping your password secret. Tell us straight away at the support email if you think someone else has used your account.',
       'If you stop being an enrolled student, you may finish deals already in progress but must not start new ones. We may close accounts we cannot verify.',
@@ -118,8 +118,8 @@ const SECTIONS: Section[] = [
       },
       'Your email is never shown to other users. Your name, photo, year, branch, rating and active listings are shown to other logged-in students.',
       'Chat messages can be read only by the two people in the conversation. Admins review reports using the information in the report. If you report a conversation, include the relevant messages in your report.',
-      'Data is stored with our hosting providers (Supabase and Vercel). We do not sell your data or use it for advertising.',
-      `You can ask us to see, correct or delete your data, or to close your account, by emailing ${SUPPORT_EMAIL} from your college email. We will do it within 30 days. We may keep records connected to an open report, a ban, or a legal requirement for as long as needed.`,
+      'Data is stored with our service providers (see the [[privacy]] for who they are). We do not sell your data or use it for advertising.',
+      `You can see, correct or delete your data from Settings, or send a request from Settings or by emailing ${SUPPORT_EMAIL} from your college email. We reply within 15 days. The [[privacy]] explains your rights in full. We may keep records connected to an open report, a ban, or a legal requirement for as long as needed.`,
     ],
   },
   {
@@ -180,24 +180,32 @@ const SECTIONS: Section[] = [
   {
     title: 'Contact and grievances',
     clauses: [
-      `For questions, complaints, appeals, data requests, or to report content that is unlawful, email ${SUPPORT_EMAIL}. This address is also our Grievance Officer contact under the Information Technology Rules, 2021.`,
+      `For questions, complaints, appeals, data requests, or to report content that is unlawful, email ${SUPPORT_EMAIL}. This address is also our Grievance Officer contact under the Information Technology Rules, 2021. Our Grievance Officer is ${GRIEVANCE_OFFICER_NAME}.`,
       'We will acknowledge complaints within 24 hours and aim to resolve them within 15 days. Reports of content that is illegal or puts someone at risk are handled first.',
     ],
   },
 ];
 
-function linkifyEmail(text: string) {
-  const parts = text.split(SUPPORT_EMAIL);
-  return parts.map((part, i) => (
-    <span key={i}>
-      {part}
-      {i < parts.length - 1 && (
-        <a href={`mailto:${SUPPORT_EMAIL}`} className="text-emerald-400 hover:text-emerald-300 break-all">
+// Turns the support email and the [[privacy]] marker into links
+function linkify(text: string) {
+  const parts = text.split(/(\[\[privacy\]\])/).flatMap((part) => (part === '[[privacy]]' ? [part] : part.split(SUPPORT_EMAIL).flatMap((chunk, i, all) => (i < all.length - 1 ? [chunk, SUPPORT_EMAIL] : [chunk]))));
+  return parts.map((part, i) => {
+    if (part === '[[privacy]]') {
+      return (
+        <Link key={i} href="/privacy" className="text-emerald-400 hover:text-emerald-300">
+          Privacy Notice
+        </Link>
+      );
+    }
+    if (part === SUPPORT_EMAIL) {
+      return (
+        <a key={i} href={`mailto:${SUPPORT_EMAIL}`} className="text-emerald-400 hover:text-emerald-300 break-all">
           {SUPPORT_EMAIL}
         </a>
-      )}
-    </span>
-  ));
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }
 
 export default function TermsPage() {
@@ -243,7 +251,7 @@ export default function TermsPage() {
                 if (typeof clause === 'string') {
                   return (
                     <p key={j}>
-                      {number} {linkifyEmail(clause)}
+                      {number} {linkify(clause)}
                     </p>
                   );
                 }

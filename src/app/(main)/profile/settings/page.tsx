@@ -176,16 +176,40 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     setDeleting(true);
-    // Deletes the account with its listings, offers, messages and ratings
-    const { error } = await supabase.rpc('delete_my_account');
+    // The delete-account function removes your photo files, then the account with its
+    // listings, offers, messages, ratings and notifications
+    const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
     if (error) {
       setDeleting(false);
-      showToast(errorMessage(error, "Couldn't delete your account. Please try again."), 'error');
+      let message = "Couldn't delete your account. Please try again.";
+      try {
+        const body = await (error as { context?: Response }).context?.json();
+        if (body?.error) message = body.error;
+      } catch {
+        // keep the general message
+      }
+      showToast(message, 'error');
       return;
     }
-    await supabase.auth.signOut();
+    await supabase.auth.signOut().catch(() => undefined);
     router.replace('/');
     router.refresh();
+  };
+
+  // A copy of everything we hold about you, as a file
+  const handleDownloadData = async () => {
+    const { data, error } = await supabase.rpc('export_my_data');
+    if (error || !data) {
+      showToast(errorMessage(error, "Couldn't prepare your data. Please try again."), 'error');
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'goodsmandi-my-data.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Your data was downloaded', 'success');
   };
 
   const handleLogout = async () => {
@@ -329,6 +353,9 @@ export default function SettingsPage() {
           <SettingsRow href="/listings/my">My listings</SettingsRow>
           <SettingsRow href="/reset-password">Change password</SettingsRow>
           {isAdmin && <SettingsRow href="/admin">Admin dashboard</SettingsRow>}
+          <SettingsRow onClick={handleDownloadData}>Download my data</SettingsRow>
+          <SettingsRow href="/privacy/request">Privacy request or complaint</SettingsRow>
+          <SettingsRow href="/privacy">Privacy Notice</SettingsRow>
           <SettingsRow href="/terms">Terms of Service</SettingsRow>
           <SettingsRow onClick={handleLogout} danger>Log out</SettingsRow>
           <SettingsRow onClick={() => { setDeleteText(''); setDeleteOpen(true); }} danger>Delete account</SettingsRow>
@@ -338,7 +365,7 @@ export default function SettingsPage() {
       <Modal isOpen={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} title="Delete your account?">
         <div className="space-y-4 text-sm text-slate-300">
           <p>
-            This permanently deletes your profile, your listings, your offers, your messages and your ratings.
+            This permanently deletes your profile, your photos, your listings, your offers, your messages and your ratings.
             It can&apos;t be undone.
           </p>
           <label htmlFor="delete-confirm" className="block text-slate-400">
