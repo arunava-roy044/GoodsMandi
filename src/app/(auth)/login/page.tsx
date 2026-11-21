@@ -22,8 +22,11 @@ export default function LoginPage() {
 
   // Show the error the email-confirmation callback sends back (e.g. an expired link)
   useEffect(() => {
-    const error = new URLSearchParams(window.location.search).get('error')
+    const params = new URLSearchParams(window.location.search)
+    const error = params.get('error')
+    const notice = params.get('notice')
     if (error) showToast(error, 'error')
+    else if (notice) showToast(notice, 'success')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
