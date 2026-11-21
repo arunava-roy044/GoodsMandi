@@ -9,14 +9,14 @@ import { useToast } from '@/components/ui/Toast';
 
 type Report = {
   id: string;
-  reporter_id: string;
+  reporter_id: string | null;
   reported_user_id: string;
   reported_listing_id: string | null;
   category: string;
   description: string;
   status: 'pending' | 'confirmed' | 'dismissed';
   created_at: string;
-  reporter: { name: string };
+  reporter: { name: string } | null;
   reported: { name: string; warning_count: number; banned: boolean };
 };
 
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">Reporter:</span>
-                      <span className="font-medium text-slate-300">{report.reporter?.name || 'Unknown'}</span>
+                      <span className="font-medium text-slate-300">{report.reporter?.name || 'a deleted account'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">Reported User:</span>

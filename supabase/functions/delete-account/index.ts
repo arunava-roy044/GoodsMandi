@@ -3,10 +3,14 @@
 // A database function can't remove files from storage, which is why this is an Edge
 // Function. It runs inside Supabase with the service role key (never in the browser):
 //   1. check who is calling from their login token
-//   2. delete everything in their folder in the listing-photos and profile-photos buckets
-//   3. delete their login; the database then deletes their profile, listings, offers,
-//      messages, ratings, notifications and consent record (ON DELETE CASCADE)
-// Photos go first: if step 2 fails nothing else is deleted and they can try again.
+//   2. prepare_account_deletion(): refuse while a report about them is waiting for
+//      review, and keep a scrambled copy of their email with any warnings or ban, so a
+//      new account with the same email can't escape them
+//   3. delete everything in their folder in the listing-photos and profile-photos buckets
+//   4. delete their login; the database then deletes their profile, listings, offers,
+//      messages, ratings, notifications and consent record (ON DELETE CASCADE).
+//      Reports they made stay, without their name.
+// Photos go before the login: if step 3 fails nothing else is deleted and they can try again.
 // Deploy with:  supabase functions deploy delete-account
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -60,6 +64,14 @@ Deno.serve(async (req: Request) => {
   if (error || !user) return json({ error: 'You need to be logged in.' }, 401);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  const { error: prepareError } = await admin.rpc('prepare_account_deletion', { p_user: user.id });
+  if (prepareError) {
+    // P0001 is a reason we can show the person (for example a pending report)
+    if (prepareError.code === 'P0001') return json({ error: prepareError.message }, 409);
+    console.error('delete-account: preparing failed', prepareError);
+    return json({ error: "Couldn't delete your account. Please try again." }, 500);
+  }
 
   try {
     for (const bucket of BUCKETS) await removeFolder(admin, bucket, user.id);
