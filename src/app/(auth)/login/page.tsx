@@ -181,7 +181,7 @@ export default function LoginPage() {
             placeholder="you@stu.upes.ac.in"
             required
           />
-          <p className="text-xs text-slate-500 mt-1">Your @stu.upes.ac.in address.</p>
+          <p className="text-xs text-slate-500 mt-1">Your college email address.</p>
         </div>
 
         <div>

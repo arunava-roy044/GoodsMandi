@@ -29,7 +29,7 @@ export default function SignupPage() {
     
     const cleanEmail = email.trim().toLowerCase()
     if (!cleanEmail.endsWith('@stu.upes.ac.in')) {
-      showToast('Registration is restricted to UPES students (@stu.upes.ac.in)', 'error')
+      showToast('Please sign up with your college email address', 'error')
       return
     }
     
@@ -213,7 +213,7 @@ export default function SignupPage() {
               className="mt-1 mr-2 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-900"
             />
             <label htmlFor="terms" className="text-sm text-slate-400">
-              I agree to the <Link href="/terms" target="_blank" className="text-emerald-400 hover:underline">Terms of Service</Link> and certify I am a UPES student.
+              I agree to the <Link href="/terms" target="_blank" className="text-emerald-400 hover:underline">Terms of Service</Link> and certify I am a currently enrolled student of the college.
             </label>
           </div>
           <div className="flex items-start">

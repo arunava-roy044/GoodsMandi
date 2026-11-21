@@ -35,7 +35,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
       {
         title: 'Who is responsible for your data',
         paragraphs: [
-          'GoodsMandi is a marketplace for currently enrolled UPES students. The person or entity that decides why and how your personal data is used (the "Data Fiduciary" under the Act) is: {fiduciary}.',
+          'GoodsMandi is a marketplace for currently enrolled students of the college. The person or entity that decides why and how your personal data is used (the "Data Fiduciary" under the Act) is: {fiduciary}.',
           'Our Grievance Officer, who answers your questions and complaints about your data, is {officer}. Email: {email}.',
         ],
       },
@@ -43,7 +43,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
         title: 'What data we collect, and why',
         paragraphs: ['We collect only what we need to run the Platform.'],
         list: [
-          'Account: your college email, your password (stored only in scrambled form by our login provider, so we cannot read it), your name, year of study and branch. We use it to create and protect your account, to check you are a UPES student, and to show other students who they are dealing with.',
+          'Account: your college email, your password (stored only in scrambled form by our login provider, so we cannot read it), your name, year of study and branch. We use it to create and protect your account, to check you are a student of the college, and to show other students who they are dealing with.',
           'Profile photo (optional): shown on your profile, listings and chats.',
           'Listings: titles, descriptions, prices and photos you post, so buyers can see what you are selling.',
           'Offers and ratings: so sellers can compare offers, and so students can build trust after a sale.',
@@ -63,7 +63,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
       {
         title: 'Why we may use your data',
         paragraphs: [
-          'We use your data for the purposes above because you gave your consent when you signed up, and because you voluntarily gave us the data for those purposes. We may also use it where the law requires, for example to comply with a court order, or to help police or UPES authorities where someone is in danger or a crime has happened.',
+          'We use your data for the purposes above because you gave your consent when you signed up, and because you voluntarily gave us the data for those purposes. We may also use it where the law requires, for example to comply with a court order, or to help police or college authorities where someone is in danger or a crime has happened.',
         ],
       },
       {
@@ -137,7 +137,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
       {
         title: 'आपके डेटा की ज़िम्मेदारी किसकी है',
         paragraphs: [
-          'GoodsMandi UPES के वर्तमान में नामांकित छात्रों के लिए एक मार्केटप्लेस है। जो व्यक्ति या संस्था तय करती है कि आपका व्यक्तिगत डेटा क्यों और कैसे इस्तेमाल होगा (अधिनियम में "डेटा फिड्यूशियरी") वह है: {fiduciary}।',
+          'GoodsMandi कॉलेज के वर्तमान में नामांकित छात्रों के लिए एक मार्केटप्लेस है। जो व्यक्ति या संस्था तय करती है कि आपका व्यक्तिगत डेटा क्यों और कैसे इस्तेमाल होगा (अधिनियम में "डेटा फिड्यूशियरी") वह है: {fiduciary}।',
           'आपके डेटा से जुड़े प्रश्नों और शिकायतों का उत्तर देने वाले हमारे शिकायत अधिकारी हैं: {officer}। ईमेल: {email}।',
         ],
       },
@@ -145,7 +145,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
         title: 'हम कौन-सा डेटा लेते हैं और क्यों',
         paragraphs: ['हम केवल वही डेटा लेते हैं जो प्लेटफ़ॉर्म चलाने के लिए ज़रूरी है।'],
         list: [
-          'खाता: आपका कॉलेज ईमेल, आपका पासवर्ड (हमारे लॉगिन प्रदाता के पास केवल कूट रूप में रहता है, इसलिए हम उसे पढ़ नहीं सकते), आपका नाम, पढ़ाई का वर्ष और ब्रांच। इसका उपयोग आपका खाता बनाने और सुरक्षित रखने, यह जाँचने कि आप UPES के छात्र हैं, और दूसरे छात्रों को यह दिखाने के लिए होता है कि वे किससे लेन-देन कर रहे हैं।',
+          'खाता: आपका कॉलेज ईमेल, आपका पासवर्ड (हमारे लॉगिन प्रदाता के पास केवल कूट रूप में रहता है, इसलिए हम उसे पढ़ नहीं सकते), आपका नाम, पढ़ाई का वर्ष और ब्रांच। इसका उपयोग आपका खाता बनाने और सुरक्षित रखने, यह जाँचने कि आप कॉलेज के छात्र हैं, और दूसरे छात्रों को यह दिखाने के लिए होता है कि वे किससे लेन-देन कर रहे हैं।',
           'प्रोफ़ाइल फ़ोटो (वैकल्पिक): आपकी प्रोफ़ाइल, लिस्टिंग और चैट में दिखती है।',
           'लिस्टिंग: आपके डाले गए शीर्षक, विवरण, कीमतें और फ़ोटो, ताकि खरीदार देख सकें कि आप क्या बेच रहे हैं।',
           'ऑफ़र और रेटिंग: ताकि विक्रेता ऑफ़र की तुलना कर सकें और बिक्री के बाद छात्रों में भरोसा बन सके।',
@@ -165,7 +165,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
       {
         title: 'हम आपका डेटा किस आधार पर इस्तेमाल कर सकते हैं',
         paragraphs: [
-          'हम आपका डेटा ऊपर बताए उद्देश्यों के लिए इस्तेमाल करते हैं क्योंकि साइन-अप करते समय आपने सहमति दी, और आपने वह डेटा उन्हीं उद्देश्यों के लिए स्वेच्छा से दिया। कानून की ज़रूरत होने पर भी हम इसका उपयोग कर सकते हैं, जैसे अदालत के आदेश का पालन करने के लिए, या जब किसी की जान को ख़तरा हो या कोई अपराध हुआ हो तब पुलिस या UPES अधिकारियों की मदद के लिए।',
+          'हम आपका डेटा ऊपर बताए उद्देश्यों के लिए इस्तेमाल करते हैं क्योंकि साइन-अप करते समय आपने सहमति दी, और आपने वह डेटा उन्हीं उद्देश्यों के लिए स्वेच्छा से दिया। कानून की ज़रूरत होने पर भी हम इसका उपयोग कर सकते हैं, जैसे अदालत के आदेश का पालन करने के लिए, या जब किसी की जान को ख़तरा हो या कोई अपराध हुआ हो तब पुलिस या कॉलेज अधिकारियों की मदद के लिए।',
         ],
       },
       {
