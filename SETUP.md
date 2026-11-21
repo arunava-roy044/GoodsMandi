@@ -112,6 +112,16 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 3. Find your user row and set `is_admin` to `true`
 4. You can now access the admin dashboard at `/admin`.
 
+### How admins log in, and who should be one
+There is one login page for everyone. An admin who logs in with no particular destination lands on `/admin`; a student lands on the normal site. Admins also get an **Admin** link in the top bar, and students never see one. A student who opens `/admin` is shown "page not found", so nothing shows that an admin area exists.
+
+Being an admin is a flag on a normal student account (`is_admin`). To choose admins:
+- **Keep it to two or three people you fully trust.** Admins can see every student's college email and reports, and can ban people.
+- **At least two**, so reports and privacy requests (we promise a reply within 15 days) are covered when one is away or in exams.
+- **A personal account for each admin, never a shared login**, so the activity log shows who did what. Use a long, unique password.
+- **Remove admin rights when someone leaves or graduates** (Admin > Users > the person > Remove admin rights).
+- The first admin is set in Supabase (step 8 above); after that, admins can make others from Admin > Users.
+
 ### What the admin panel covers (`/admin`)
 - **Overview:** what needs attention (reports, flagged listings, overdue privacy requests), counts of students, listings, offers and messages, and a 14-day chart. The tab bar shows badges for pending items.
 - **Users:** search everyone by name or college email, filter (new, warned, banned, admins), and open a person to see their listings, the reports against them and what admins did about them. From there you can ban or unban (a reason is required to ban), reset warnings, and make someone an admin or remove their admin rights. You can't change your own admin rights, and there is always at least one admin.
