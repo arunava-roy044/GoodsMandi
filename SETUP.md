@@ -168,6 +168,45 @@ These support the Digital Personal Data Protection Act, 2023.
 
 ---
 
+## Hosting on Azure App Service (instead of Vercel)
+
+The site runs as an ordinary Node server, so it can be hosted on Azure. Supabase stays as it is. The deploy workflow is `.github/workflows/deploy-azure.yml`: after every push to `main` it builds the site and sends it to App Service.
+
+**1. Create the web app** (portal.azure.com → Create a resource → Web App)
+- Subscription: your Azure for Students subscription. Resource group: create `goodsmandi-rg`.
+- Name: for example `goodsmandi` (the site will be `goodsmandi.azurewebsites.net`; the name must be unique).
+- Publish: **Code**. Runtime stack: **Node 22 LTS**. Operating system: **Linux**.
+- Region: **Central India**, the closest to the Supabase project in Mumbai. Student subscriptions only allow some regions; if Central India isn't offered, pick the nearest one that is.
+- Pricing plan: **Basic B1**. Don't use the Free F1 plan: it has a daily CPU limit and no "Always On".
+- Deployment tab: **Basic authentication: Enable** (the deploy workflow signs in with a publish profile).
+
+**2. Settings** (the web app → Settings → Environment variables, then Configuration)
+- App settings to add:
+  - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: the same values as in `.env.local`
+  - `HOSTNAME` = `0.0.0.0` (without this the server can listen only on Azure's internal name and the site won't answer)
+  - `SCM_DO_BUILD_DURING_DEPLOYMENT` = `false` (so Azure doesn't try to rebuild what was already built)
+- Configuration → General settings: **Startup Command** = `node server.js`, **Always On** = On.
+- Settings → Configuration → **HTTPS Only** = On.
+
+**3. Give GitHub the keys** (GitHub repo → Settings → Secrets and variables → Actions)
+- Web app → Overview → **Download publish profile**. Create the secret `AZURE_WEBAPP_PUBLISH_PROFILE` and paste the whole file into it.
+- Secrets `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: the same values as above. They are baked into the browser code during the build, so they are needed here as well.
+- Variable (Variables tab) `AZURE_WEBAPP_NAME` = the web app's name.
+
+**4. Deploy.** GitHub → Actions → **Deploy to Azure** → Run workflow. When it finishes, open `https://<name>.azurewebsites.net`.
+
+**5. Your own domain.** Web app → Custom domains → Add custom domain, add the DNS records it shows at the domain seller, then add the free **App Service Managed Certificate** for HTTPS.
+
+**6. Tell Supabase the new address.** Authentication → URL Configuration: set **Site URL** to the new domain, and make `https://<domain>/auth/callback` the only redirect URL.
+
+**7. After switching over.** Once the Azure site works, disconnect the project in Vercel and delete `vercel.json`. Delete the old VM's resource group too, so it stops billing.
+
+Notes:
+- `BUILD_STANDALONE=1` (set by the workflow) makes `next build` write a small self-contained server to `.next/standalone`. Normal builds, CI and Vercel don't set it and are unchanged.
+- There are no automatic preview links for pull requests on Azure; the CI checks still run on every PR.
+
+---
+
 ## Tech Stack
 - **Frontend**: Next.js 16 (App Router, TypeScript) + Tailwind CSS v3
 - **Backend**: Supabase (Postgres, Auth, Storage, Realtime)

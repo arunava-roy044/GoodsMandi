@@ -1,0 +1,65 @@
+# Builds the site and deploys it to Azure App Service.
+# Runs on every push to main, and by hand from the Actions tab ("Run workflow").
+#
+# One-time setup (details in SETUP.md, "Hosting on Azure App Service"):
+#   Repository variable  AZURE_WEBAPP_NAME             the App Service name
+#   Repository secret    AZURE_WEBAPP_PUBLISH_PROFILE  contents of the downloaded publish profile
+#   Repository secret    NEXT_PUBLIC_SUPABASE_URL      same value as in .env.local
+#   Repository secret    NEXT_PUBLIC_SUPABASE_ANON_KEY same value as in .env.local
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      # NEXT_PUBLIC_* values are baked into the browser code during the build,
+      # so they must be present here, not only on the server.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      BUILD_STANDALONE: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the setup
+        run: |
+          missing=0
+          for name in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::Repository secret $name is not set"; missing=1; fi
+          done
+          if [ -z "${{ vars.AZURE_WEBAPP_NAME }}" ]; then echo "::error::Repository variable AZURE_WEBAPP_NAME is not set"; missing=1; fi
+          if [ -z "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}" ]; then echo "::error::Repository secret AZURE_WEBAPP_PUBLISH_PROFILE is not set"; missing=1; fi
+          exit $missing
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # The standalone server expects the static files next to it
+      - name: Assemble the deployment folder
+        run: |
+          mkdir -p deploy/.next
+          cp -r .next/standalone/. deploy/
+          cp -r .next/static deploy/.next/static
+          cp -r public deploy/public
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy

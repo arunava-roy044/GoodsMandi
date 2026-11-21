@@ -17,6 +17,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Azure App Service: BUILD_STANDALONE=1 makes `next build` produce a small, self-contained
+  // server in .next/standalone (see .github/workflows/deploy-azure.yml). Off by default, so
+  // Vercel and the CI build are unaffected.
+  output: process.env.BUILD_STANDALONE === '1' ? 'standalone' : undefined,
   images: {
     unoptimized: true,
     remotePatterns: [
