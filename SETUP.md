@@ -207,6 +207,61 @@ Notes:
 
 ---
 
+## Hosting on an Azure VM (when App Service has no capacity)
+
+Use this if App Service fails with "No available instances". The site runs as a normal Node server behind nginx on one Ubuntu VM. Supabase stays as it is. Unlike App Service, **you** keep the VM updated and running. The deploy workflow is `.github/workflows/deploy-vm.yml`; it only runs once the variable `VM_HOST` is set. `deploy-azure.yml` is manual-only now.
+
+**1. Create the VM** (portal.azure.com → Virtual machines → Create)
+- Resource group `goodsmandi-rg`, name `goodsmandi-vm`, region **Malaysia West** (or whichever your subscription allows).
+- Image **Ubuntu Server 24.04 LTS**. Size **Standard_B2s** (2 vCPU, 4 GB). B1s is too small for `next build` output plus traffic.
+- Authentication: **SSH public key**, username `azureuser`. Let Azure generate the key pair and download the `.pem` file. Keep it safe.
+- Inbound ports: allow **SSH (22), HTTP (80), HTTPS (443)**.
+- Disk: Standard SSD is enough.
+- After it is created: VM → Overview → Public IP address → **Configuration** → give it a **DNS name label** (for example `goodsmandi`). The VM is then reachable at `goodsmandi.<region>.cloudapp.azure.com`, which also works for a free HTTPS certificate. Set the IP assignment to **Static**.
+
+**2. Make a deploy key** (on your own computer)
+```bash
+ssh-keygen -t ed25519 -f goodsmandi_deploy -N "" -C github-deploy
+```
+This makes `goodsmandi_deploy` (private) and `goodsmandi_deploy.pub` (public).
+
+**3. Set the VM up (once).** Copy the script over and run it:
+```bash
+scp -i azureuser_key.pem infra/vm/setup.sh azureuser@<vm-address>:~
+ssh -i azureuser_key.pem azureuser@<vm-address>
+```
+On the VM:
+```bash
+sudo SUPABASE_URL='https://<project>.supabase.co' \
+     SUPABASE_ANON_KEY='<anon key>' \
+     DEPLOY_PUBKEY='<contents of goodsmandi_deploy.pub>' \
+     DOMAIN='<vm-address>' \
+     bash setup.sh
+```
+It installs Node 22, nginx and certbot, makes the `deploy` and `goodsmandi` users, and creates the `goodsmandi` systemd service (restarts itself if it crashes or the VM reboots).
+
+**4. Give GitHub the keys** (repo → Settings → Secrets and variables → Actions)
+- Variables: `VM_HOST` = the VM address, `VM_USER` = `deploy`.
+- Secrets: `VM_SSH_KEY` = contents of `goodsmandi_deploy` (the private file), plus `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (same as `.env.local`).
+
+**5. Deploy.** Actions → **Deploy to Azure VM** → Run workflow. It builds, uploads, switches the site over, and goes back to the previous release if the new one does not answer. Pushes to `main` deploy automatically after this.
+
+**6. HTTPS** (on the VM, after the first deploy)
+```bash
+sudo certbot --nginx -d <vm-address> --redirect -m <your email> --agree-tos -n
+```
+Certbot renews the certificate by itself.
+
+**7. Tell Supabase the new address.** Authentication → URL Configuration: Site URL `https://<vm-address>`, and `https://<vm-address>/auth/callback` as the redirect URL.
+
+Notes:
+- Security updates install automatically (`unattended-upgrades`). Reboot the VM now and then; the site comes back by itself.
+- Logs: `sudo journalctl -u goodsmandi -f` (site), `/var/log/nginx/error.log` (nginx).
+- A stopped VM still bills for its disk and IP. To stop all charges, delete the resource group.
+- If you get an App Service plan later, switch back by re-adding the push trigger in `deploy-azure.yml` and clearing `VM_HOST`.
+
+---
+
 ## Tech Stack
 - **Frontend**: Next.js 16 (App Router, TypeScript) + Tailwind CSS v3
 - **Backend**: Supabase (Postgres, Auth, Storage, Realtime)
