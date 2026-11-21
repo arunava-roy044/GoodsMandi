@@ -142,7 +142,7 @@ export default function SignupPage() {
               className="input-field w-full pr-11"
               placeholder="••••••••"
               required
-              minLength={6}
+              minLength={8}
             />
             <button
               type="button"

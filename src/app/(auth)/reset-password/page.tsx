@@ -66,8 +66,8 @@ export default function ResetPasswordPage() {
       return
     }
 
-    if (password.length < 6) {
-      showToast('Password must be at least 6 characters.', 'error')
+    if (password.length < 8) {
+      showToast('Password must be at least 8 characters.', 'error')
       return
     }
 
@@ -140,7 +140,7 @@ export default function ResetPasswordPage() {
               className="input-field w-full pr-11"
               placeholder="••••••••"
               required
-              minLength={6}
+              minLength={8}
             />
             <button
               type="button"
@@ -165,7 +165,7 @@ export default function ResetPasswordPage() {
               className="input-field w-full pr-11"
               placeholder="••••••••"
               required
-              minLength={6}
+              minLength={8}
             />
             <button
               type="button"
