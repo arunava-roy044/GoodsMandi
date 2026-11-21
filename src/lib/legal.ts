@@ -10,11 +10,11 @@ export const SERVICE_NAME = 'GoodsMandi';
 
 // CONFIRM: the person or registered entity that decides why and how student data is
 // used (the Data Fiduciary). For a pilot this is usually the individual(s) running the site.
-export const FIDUCIARY_NAME = '[CONFIRM: name of the person or entity running GoodsMandi]';
+export const FIDUCIARY_NAME = 'Arunava Roy';
 
 // CONFIRM: a named person students can contact about their data and complaints, and an
 // email address on the project's own domain.
-export const GRIEVANCE_OFFICER_NAME = '[CONFIRM: name of the Grievance Officer]';
+export const GRIEVANCE_OFFICER_NAME = 'Arunava Roy';
 export const SUPPORT_EMAIL = 'goodsmandi.support@gmail.com';
 
 // Raise this whenever the Privacy Notice changes in a way that needs people to agree
