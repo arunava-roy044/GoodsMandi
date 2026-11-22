@@ -86,6 +86,14 @@ jobs:
           rm -rf "$rel"; mkdir -p "$rel"
           tar -xzf "/tmp/release-$SHA.tgz" -C "$rel"
           rm -f "/tmp/release-$SHA.tgz"
+          # The site runs as a user that cannot write to the release folder, so point
+          # Next.js's cache at a shared folder it owns (made by infra/vm/setup.sh)
+          if [ -d "$base/cache" ]; then
+            mkdir -p "$rel/.next"; rm -rf "$rel/.next/cache"
+            ln -s "$base/cache" "$rel/.next/cache"
+          else
+            echo "::warning::$base/cache is missing; re-run infra/vm/setup.sh"
+          fi
 
           prev=$(readlink -f "$base/current" 2>/dev/null || true)
           ln -sfn "$rel" "$base/current"
