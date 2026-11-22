@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { CheckEmailScreen } from '@/components/auth/CheckEmailScreen'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
@@ -22,6 +24,7 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false)
   
   const { showToast } = useToast()
+  const router = useRouter()
   const supabase = createClient()
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -73,7 +76,7 @@ export default function SignupPage() {
         showToast(error.message || 'Signup failed. Please try again.', 'error')
       } else {
         setSuccess(true)
-        showToast('Registration successful! Check your email to verify.', 'success')
+        showToast('Account created. Now verify your email in Outlook.', 'success')
       }
     } catch (err) {
       console.error('Signup unexpected error:', JSON.stringify(err, null, 2), 'message:', errorMessage(err))
@@ -85,20 +88,12 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="glass-card p-8 rounded-lg w-full text-center">
-        <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-semibold text-white mb-2">Check your email</h2>
-        <p className="text-slate-400 mb-6">
-          We&apos;ve sent a verification link to <span className="text-white font-medium">{email}</span>.
-        </p>
-        <Link href="/login" className="btn-secondary w-full py-2.5 inline-block">
-          Return to Login
-        </Link>
-      </div>
+      <CheckEmailScreen
+        email={email.trim().toLowerCase()}
+        intro="Your account is almost ready."
+        onBack={() => router.push('/login')}
+        backLabel="Verified? Go to log in"
+      />
     )
   }
 

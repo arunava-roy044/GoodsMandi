@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     // The link is checked by Supabase before it reaches us, so when only the last step fails
     // (the link was opened on another device or browser) the email is already confirmed.
     message = linkRejected
-      ? 'This link has expired or was already used. Try logging in. If it says your email is not confirmed, sign up again to get a new link.'
+      ? 'This link has expired or was already used. Try logging in. If your email is not verified yet, you can send yourself a new link from there.'
       : 'Your email is confirmed. Log in with your email and password.'
   }
 
