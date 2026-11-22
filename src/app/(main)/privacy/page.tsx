@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { NOTICE } from '@/lib/privacyNotice';
 import {
+  EMAIL_PROVIDER,
   FIDUCIARY_NAME,
   GRIEVANCE_OFFICER_NAME,
   PRIVACY_NOTICE_DATE,
@@ -18,7 +19,8 @@ function fill(text: string): string {
     .replaceAll('{fiduciary}', FIDUCIARY_NAME)
     .replaceAll('{officer}', GRIEVANCE_OFFICER_NAME)
     .replaceAll('{email}', SUPPORT_EMAIL)
-    .replaceAll('{days}', String(REQUEST_RESPONSE_DAYS));
+    .replaceAll('{days}', String(REQUEST_RESPONSE_DAYS))
+    .replaceAll('{emailProvider}', EMAIL_PROVIDER);
 }
 
 export default async function PrivacyPage({

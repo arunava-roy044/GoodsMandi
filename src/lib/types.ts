@@ -58,7 +58,7 @@ export type ChatMessage = {
 
 export type Report = {
   id: string;
-  reporter_id: string;
+  reporter_id: string | null;
   reported_user_id: string;
   reported_listing_id: string | null;
   category: string;

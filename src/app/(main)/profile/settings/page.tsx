@@ -365,9 +365,15 @@ export default function SettingsPage() {
       <Modal isOpen={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} title="Delete your account?">
         <div className="space-y-4 text-sm text-slate-300">
           <p>
-            This permanently deletes your profile, your photos, your listings, your offers, your messages and your ratings.
-            It can&apos;t be undone.
+            This permanently deletes your profile, your photos, your listings, your offers, your messages and the ratings you
+            gave and received. It can&apos;t be undone.
           </p>
+          <ul className="ml-5 list-disc space-y-1 text-slate-400">
+            <li>Your chats also disappear for the people you were chatting with.</li>
+            <li>Reports you made stay, without your name, so moderators can finish reviewing them.</li>
+            <li>If you have warnings or a ban, we keep a scrambled copy of your email so they still apply if you sign up again.</li>
+            <li>You can&apos;t delete your account while a report about you is waiting for review.</li>
+          </ul>
           <label htmlFor="delete-confirm" className="block text-slate-400">
             Type <span className="font-mono text-white">DELETE</span> to confirm
           </label>

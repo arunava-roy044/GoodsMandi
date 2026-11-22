@@ -1,5 +1,6 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import ConsentCheck from '@/components/layout/ConsentCheck'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,7 @@ export default function MainLayout({
         {children}
       </main>
       <Footer />
+      <ConsentCheck />
     </div>
   )
 }
