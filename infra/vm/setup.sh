@@ -39,6 +39,8 @@ echo "$DEPLOY_PUBKEY" > /home/deploy/.ssh/authorized_keys
 chown deploy:deploy /home/deploy/.ssh/authorized_keys
 chmod 600 /home/deploy/.ssh/authorized_keys
 install -d -m 755 -o deploy -g deploy /opt/goodsmandi /opt/goodsmandi/releases
+# Next.js writes its cache here; each release links .next/cache to it
+install -d -m 755 -o goodsmandi -g goodsmandi /opt/goodsmandi/cache
 
 # The deploy user may restart the site and nothing else as root
 cat > /etc/sudoers.d/goodsmandi-deploy <<'SUDO'
