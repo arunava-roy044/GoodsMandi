@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { errorMessage } from '@/lib/utils'
+import { CheckEmailScreen } from '@/components/auth/CheckEmailScreen'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [resetMode, setResetMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
+  const [unconfirmed, setUnconfirmed] = useState(false)
   const router = useRouter()
   const { showToast } = useToast()
   const supabase = createClient()
@@ -56,8 +58,8 @@ export default function LoginPage() {
       })
 
       if (error) {
-        if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
-          showToast('Please confirm your email before logging in. Check your inbox for the verification link.', 'error')
+        if (error.message.includes('Email not confirmed') || error.code === 'email_not_confirmed') {
+          setUnconfirmed(true)
         } else {
           showToast(error.message, 'error')
         }
@@ -97,6 +99,19 @@ export default function LoginPage() {
     } finally {
       setResetLoading(false)
     }
+  }
+
+  // Tried to log in before clicking the verify link
+  if (unconfirmed) {
+    return (
+      <CheckEmailScreen
+        email={email.trim().toLowerCase()}
+        intro="Your email isn't verified yet."
+        initialCooldown={0}
+        onBack={() => setUnconfirmed(false)}
+        backLabel="Back to log in"
+      />
+    )
   }
 
   // Reset email sent confirmation
