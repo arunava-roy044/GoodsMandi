@@ -217,6 +217,11 @@ export default function Navbar() {
                 {cornerLink.icon}
               </Link>
             )}
+            {!user && (
+              <Link href="/login" className="btn-ghost px-3 py-1.5 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                Log in
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}

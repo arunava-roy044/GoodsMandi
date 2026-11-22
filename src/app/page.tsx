@@ -64,18 +64,29 @@ export default async function HomePage() {
           <p className="text-lg text-slate-400 mb-8">
             A marketplace for college students. Books, gadgets, cycles and room stuff from people you can meet on campus.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/listings" className="btn-primary text-center">
-              Browse listings
-            </Link>
-            <Link href={sellHref} className="btn-secondary text-center">
-              Sell an item
-            </Link>
-          </div>
-          {!user && (
-            <p className="mt-6 text-sm text-slate-500">
-              Sign up with your <span className="text-slate-300">college email</span> to get started.
-            </p>
+          {user ? (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/listings" className="btn-primary text-center">
+                Browse listings
+              </Link>
+              <Link href={sellHref} className="btn-secondary text-center">
+                Sell an item
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/signup" className="btn-primary text-center">
+                  Sign up
+                </Link>
+                <Link href="/login" className="btn-secondary text-center">
+                  Log in
+                </Link>
+              </div>
+              <p className="mt-6 text-sm text-slate-500">
+                Sign up with your <span className="text-slate-300">college email</span> to browse and post listings.
+              </p>
+            </>
           )}
         </section>
 
