@@ -86,6 +86,14 @@ systemctl daemon-reload
 systemctl enable goodsmandi
 
 echo "==> nginx"
+# Supabase login cookies make response headers bigger than nginx's default
+# buffers ("upstream sent too big header" -> 502 for signed-in users)
+cat > /etc/nginx/conf.d/goodsmandi-buffers.conf <<'BUF'
+proxy_buffer_size 32k;
+proxy_buffers 8 32k;
+proxy_busy_buffers_size 64k;
+large_client_header_buffers 4 32k;
+BUF
 cat > /etc/nginx/sites-available/goodsmandi <<NGINX
 server {
     listen 80;
