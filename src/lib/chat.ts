@@ -32,3 +32,40 @@ export function chatTimeLabel(iso: string): string {
 export function isSameDay(a: string, b: string): boolean {
   return startOfDay(new Date(a)) === startOfDay(new Date(b));
 }
+
+// One row from get_my_conversations(). Item fields are null when the listing is gone
+// or no longer visible to you.
+export type Conversation = {
+  listing_id: string;
+  other_user_id: string;
+  listing_title: string | null;
+  listing_photo: string | null;
+  listing_price: number | null;
+  listing_status: 'active' | 'sold' | 'removed' | null;
+  i_am_seller: boolean | null;
+  other_user_name: string;
+  other_user_photo: string | null;
+  last_message: string;
+  last_message_mine: boolean;
+  last_message_time: string;
+  last_message_seen: boolean;
+  unread_count: number;
+};
+
+// Fired on window after a chat is marked read, so the list and navbar badge refresh
+export const CHAT_READ_EVENT = 'chat-read';
+
+export const QUICK_REPLIES = {
+  buyer: [
+    'Is this still available?',
+    'Is the price negotiable?',
+    'Can we meet on campus today?',
+    'Where on campus can we meet?',
+  ],
+  seller: [
+    "Yes, it's still available.",
+    'When are you free to meet?',
+    "Let's meet at the library.",
+    "Sorry, it's already sold.",
+  ],
+};
