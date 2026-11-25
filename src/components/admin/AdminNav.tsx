@@ -2,19 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { IconActivity, IconFlag, IconHome, IconLock, IconTag, IconUsers } from '@/components/admin/icons';
 
 type Badges = { reports: number; privacy: number; flagged: number };
 
 export default function AdminNav({ badges }: { badges: Badges }) {
   const pathname = usePathname();
 
-  const tabs: { href: string; label: string; exact?: boolean; badge?: number }[] = [
-    { href: '/admin', label: 'Overview', exact: true },
-    { href: '/admin/users', label: 'Users' },
-    { href: '/admin/listings', label: 'Listings', badge: badges.flagged },
-    { href: '/admin/reports', label: 'Reports', badge: badges.reports },
-    { href: '/admin/privacy', label: 'Privacy & data', badge: badges.privacy },
-    { href: '/admin/activity', label: 'Activity' },
+  const tabs: { href: string; label: string; icon: React.ReactNode; exact?: boolean; badge?: number }[] = [
+    { href: '/admin', label: 'Overview', icon: <IconHome className="h-4 w-4" />, exact: true },
+    { href: '/admin/users', label: 'Users', icon: <IconUsers className="h-4 w-4" /> },
+    { href: '/admin/listings', label: 'Listings', icon: <IconTag className="h-4 w-4" />, badge: badges.flagged },
+    { href: '/admin/reports', label: 'Reports', icon: <IconFlag className="h-4 w-4" />, badge: badges.reports },
+    { href: '/admin/privacy', label: 'Privacy & data', icon: <IconLock className="h-4 w-4" />, badge: badges.privacy },
+    { href: '/admin/activity', label: 'Activity', icon: <IconActivity className="h-4 w-4" /> },
   ];
 
   return (
@@ -27,13 +28,17 @@ export default function AdminNav({ badges }: { badges: Badges }) {
               <Link
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
-                className={`-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                  active ? 'border-emerald-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'
+                className={`-mb-px inline-flex items-center gap-2 rounded-t-lg border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  active ? 'border-emerald-400 bg-emerald-500/5 text-white' : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                 }`}
               >
+                <span className={active ? 'text-emerald-400' : 'text-slate-500'}>{tab.icon}</span>
                 {tab.label}
                 {!!tab.badge && tab.badge > 0 && (
-                  <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-300">{tab.badge}</span>
+                  <span className="min-w-[1.25rem] rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-xs font-bold leading-none text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]">
+                    {tab.badge}
+                    <span className="sr-only"> waiting</span>
+                  </span>
                 )}
               </Link>
             </li>
