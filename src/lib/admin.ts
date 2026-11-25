@@ -3,9 +3,9 @@
 export type DayCount = { day: string; n: number };
 
 export type Dashboard = {
-  users: { total: number; new_7d: number; banned: number; admins: number };
-  listings: { active: number; sold: number; removed: number; flagged: number; new_7d: number };
-  offers: { total: number; pending: number; new_7d: number };
+  users: { total: number; new_7d: number; new_prev_7d?: number; banned: number; admins: number };
+  listings: { active: number; sold: number; removed: number; flagged: number; new_7d: number; new_prev_7d?: number };
+  offers: { total: number; pending: number; new_7d: number; new_prev_7d?: number };
   messages: { total: number; last_24h: number };
   reports: { pending: number };
   privacy: { open_requests: number; overdue_requests: number; open_incidents: number };
@@ -38,5 +38,18 @@ export const formatDate = (iso: string | null | undefined) =>
 
 export const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+// "5 min ago", "3 hours ago", "2 days ago", then the date
+export function timeAgo(iso: string, now: number) {
+  const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
+  if (s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} ${h === 1 ? 'hour' : 'hours'} ago`;
+  const d = Math.round(h / 24);
+  if (d < 7) return d === 1 ? 'yesterday' : `${d} days ago`;
+  return formatDate(iso);
+}
 
 export const PAGE_SIZE = 25;
