@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import { CHAT_READ_EVENT } from '@/lib/chat'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
+  const [chatUnread, setChatUnread] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
@@ -76,6 +78,30 @@ export default function Navbar() {
     }
   }, [supabase, userId, pathname])
 
+  // Unread chat messages, for the badge on the Chat link
+  useEffect(() => {
+    if (!userId) return
+    const loadChatUnread = async () => {
+      const { data, error } = await supabase.rpc('get_unread_chat_count')
+      if (!error) setChatUnread(typeof data === 'number' ? data : 0)
+    }
+    loadChatUnread()
+
+    const channel = supabase
+      .channel(`chat-unread:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `recipient_id=eq.${userId}` },
+        () => loadChatUnread()
+      )
+      .subscribe()
+    window.addEventListener(CHAT_READ_EVENT, loadChatUnread)
+    return () => {
+      window.removeEventListener(CHAT_READ_EVENT, loadChatUnread)
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, userId, pathname])
+
   // Close the mobile menu when tapping outside the navbar
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -135,6 +161,16 @@ export default function Navbar() {
 
   const onNotifications = pathname.startsWith('/notifications')
   const unreadShown = user ? unread : 0
+  const chatUnreadShown = user ? chatUnread : 0
+  const chatBadge = (link: { href: string }) =>
+    link.href === '/chat' && chatUnreadShown > 0 ? (
+      <span
+        className="ml-1.5 inline-block min-w-[18px] h-[18px] rounded-full bg-emerald-500 px-1 text-[11px] font-semibold leading-[18px] text-white text-center align-middle"
+        aria-label={`${chatUnreadShown} unread messages`}
+      >
+        {chatUnreadShown > 99 ? '99+' : chatUnreadShown}
+      </span>
+    ) : null
   const bell = (
     <Link
       href="/notifications"
@@ -181,6 +217,7 @@ export default function Navbar() {
                     }`}
                   >
                     {link.name}
+                    {chatBadge(link)}
                   </Link>
                 ))}
               </div>
@@ -225,9 +262,12 @@ export default function Navbar() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
-              className="inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none"
+              className="relative inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none"
             >
               <span className="sr-only">Open main menu</span>
+              {chatUnreadShown > 0 && !mobileMenuOpen && (
+                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950" aria-hidden="true" />
+              )}
               {mobileMenuOpen ? (
                 <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -257,6 +297,7 @@ export default function Navbar() {
                 }`}
               >
                 {link.name}
+                {chatBadge(link)}
               </Link>
             ))}
           </div>
