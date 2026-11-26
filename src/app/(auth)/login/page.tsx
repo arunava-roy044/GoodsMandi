@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { errorMessage } from '@/lib/utils'
 import { CheckEmailScreen } from '@/components/auth/CheckEmailScreen'
+import { Turnstile, useCaptcha } from '@/components/auth/Turnstile'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { showToast } = useToast()
   const supabase = createClient()
+  const captcha = useCaptcha()
 
   // Show the error the email-confirmation callback sends back (e.g. an expired link)
   useEffect(() => {
@@ -49,12 +51,17 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (captcha.enabled && !captcha.token) {
+      showToast('Please wait for the security check to finish.', 'error')
+      return
+    }
     setLoading(true)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
+        options: { captchaToken: captcha.authToken },
       })
 
       if (error) {
@@ -72,6 +79,7 @@ export default function LoginPage() {
       showToast('An unexpected error occurred.', 'error')
     } finally {
       setLoading(false)
+      captcha.reset()
     }
   }
 
@@ -81,11 +89,16 @@ export default function LoginPage() {
       showToast('Please enter your email address.', 'error')
       return
     }
+    if (captcha.enabled && !captcha.token) {
+      showToast('Please wait for the security check to finish.', 'error')
+      return
+    }
     setResetLoading(true)
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        captchaToken: captcha.authToken,
       })
 
       if (error) {
@@ -98,6 +111,7 @@ export default function LoginPage() {
       showToast(errorMessage(err, 'Failed to send reset email.'), 'error')
     } finally {
       setResetLoading(false)
+      captcha.reset()
     }
   }
 
@@ -158,6 +172,8 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          <Turnstile onToken={captcha.setToken} resetSignal={captcha.resetSignal} />
 
           <button
             type="submit"
@@ -240,6 +256,8 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+
+        <Turnstile onToken={captcha.setToken} resetSignal={captcha.resetSignal} />
 
         <button
           type="submit"

@@ -262,6 +262,31 @@ Notes:
 
 ---
 
+## Bot protection (CAPTCHA on sign-up, log in and password reset)
+
+Without this, a script can create thousands of accounts or try passwords all day. The site uses [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/), which is free and usually passes real people without asking them to do anything. Supabase Auth checks the token with Cloudflare, so a bot can't skip the form and call the API directly.
+
+The code is already in place and stays **off** until you set a site key, so nothing changes for anyone until you finish step 4. Do the steps in this order. Turning Supabase on before the site shows the check would stop everyone from logging in.
+
+**1. Make a Turnstile widget** (dash.cloudflare.com, free account → Turnstile → Add widget)
+- Widget name `GoodsMandi`. Hostnames: `goodsmandi.com` and `www.goodsmandi.com`. Mode: **Managed**.
+- Cloudflare gives you a **Site key** (public) and a **Secret key** (private). The secret key goes only into Supabase (step 4). Never put it in GitHub, the repo or the VM.
+
+**2. Give GitHub the site key.** Repo → Settings → Secrets and variables → Actions → **Variables** tab → New repository variable: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` = the Site key. (It is public: anyone can see it in the page.)
+
+**3. Deploy.** Merge the change (or Actions → **Deploy to Azure VM** → Run workflow). The site key is baked into the build, so the deploy must run *after* step 2. Open `https://goodsmandi.com/login`: a small "Verifying..." box appears above the Log in button. Check sign-up and "Forgot password?" too.
+
+**4. Turn it on in Supabase.** Dashboard → Authentication → **Attack Protection** → enable **CAPTCHA protection** → provider **Cloudflare Turnstile** → paste the **Secret key** → Save.
+
+**5. Test.** Log in, sign up with a new college email, and use "Forgot password?" and "Resend verification email". Each should work with the box showing. If login stops working for everyone, switch CAPTCHA protection off again in Supabase (step 4); the site keeps working without it.
+
+Notes:
+- If someone's ad blocker hides the check, the form tells them to turn it off for the site.
+- For local development, Cloudflare publishes test keys that always pass: site key `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`. Put the site key in `.env.local` as `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and use the secret with a local Supabase if you test the full flow.
+- To switch the check off on the site, clear the `NEXT_PUBLIC_TURNSTILE_SITE_KEY` variable and deploy again (and turn it off in Supabase first).
+
+---
+
 ## Tech Stack
 - **Frontend**: Next.js 16 (App Router, TypeScript) + Tailwind CSS v3
 - **Backend**: Supabase (Postgres, Auth, Storage, Realtime)

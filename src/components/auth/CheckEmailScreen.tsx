@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { errorMessage } from '@/lib/utils'
+import { Turnstile, useCaptcha } from '@/components/auth/Turnstile'
 
 // College emails are Microsoft 365 (Outlook) inboxes
 const OUTLOOK_URL = 'https://outlook.office.com/mail/'
@@ -26,6 +27,7 @@ export function CheckEmailScreen({ email, intro, onBack, backLabel, initialCoold
   const [cooldown, setCooldown] = useState(initialCooldown)
   const [resending, setResending] = useState(false)
   const { showToast } = useToast()
+  const captcha = useCaptcha()
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -34,12 +36,16 @@ export function CheckEmailScreen({ email, intro, onBack, backLabel, initialCoold
   }, [cooldown])
 
   const handleResend = async () => {
+    if (captcha.enabled && !captcha.token) {
+      showToast('Please wait for the security check to finish.', 'error')
+      return
+    }
     setResending(true)
     try {
       const { error } = await createClient().auth.resend({
         type: 'signup',
         email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback`, captchaToken: captcha.authToken },
       })
       if (error) {
         showToast(error.message || 'Could not send the email again. Try again in a minute.', 'error')
@@ -51,6 +57,7 @@ export function CheckEmailScreen({ email, intro, onBack, backLabel, initialCoold
       showToast(errorMessage(err, 'Could not send the email again.'), 'error')
     } finally {
       setResending(false)
+      captcha.reset()
     }
   }
 
@@ -101,6 +108,9 @@ export function CheckEmailScreen({ email, intro, onBack, backLabel, initialCoold
         Can&apos;t find it? Check your <span className="font-medium">Junk Email</span> folder and the{' '}
         <span className="font-medium">Other</span> tab in Outlook. It can take a couple of minutes to arrive.
       </div>
+
+      {/* Only shows itself if Cloudflare needs the person to do something */}
+      <Turnstile onToken={captcha.setToken} resetSignal={captcha.resetSignal} appearance="interaction-only" />
 
       <button
         type="button"
