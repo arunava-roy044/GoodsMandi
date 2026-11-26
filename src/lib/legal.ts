@@ -21,8 +21,8 @@ export const SUPPORT_EMAIL = 'goodsmandi.support@gmail.com';
 // again. It is stored with each person's consent, so we can show what they agreed to.
 // Everyone whose latest consent has another version is asked to agree again
 // (src/components/layout/ConsentCheck.tsx). It covers the Terms too.
-export const PRIVACY_NOTICE_VERSION = '2026-11-21-2';
-export const PRIVACY_NOTICE_DATE = 'November 21, 2026';
+export const PRIVACY_NOTICE_VERSION = '2026-11-26';
+export const PRIVACY_NOTICE_DATE = 'November 26, 2026';
 export const TERMS_DATE = 'November 21, 2026';
 
 // The email service that sends sign-up and password emails

@@ -58,7 +58,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
       {
         title: 'What we do not collect',
         paragraphs: [
-          'We do not collect your phone number, your location, your contacts or any payment details. We do not sell your data, use it for advertising, or track or profile you. Your email is never shown to other students.',
+          'We do not collect your phone number, your location, your contacts or any payment details. We do not sell your data, and we never give advertisers your name, email, listings or messages. Your email is never shown to other students. The ads on our pages are explained in the "Ads and cookies" section below.',
         ],
       },
       {
@@ -75,6 +75,14 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
           'Moderators see reports and the content they need to review them.',
           'Admins can also see each account\'s college email, when it last signed in, its warnings and ban, and how many listings, offers, messages and reports it has. They use this only to run and protect the Platform.',
           'Companies that handle data for us (our "Data Processors"): Supabase (database, login and file storage), Vercel (website hosting) and {emailProvider} (sends verification and password-reset emails). They may use your data only to provide their service to us, under their data-processing terms. If we change a provider, we update this notice.',
+        ],
+      },
+      {
+        title: 'Ads and cookies',
+        paragraphs: [
+          'We show ads from Google AdSense to help pay for running GoodsMandi. Google, as a third-party vendor, uses cookies and similar technologies to show ads on our pages. Its advertising cookies let Google and its partners show you ads based on your visits to GoodsMandi and to other websites.',
+          'Google receives information from your browser when an ad loads, such as your IP address, the page you are on, your device and browser type, and its cookies. Google uses this under its own privacy policy, not ours. We do not give Google your name, email, listings or messages.',
+          'You can turn off personalised ads from Google at https://adssettings.google.com (Google Ads Settings). You can also opt out of many third-party vendors’ personalised-ad cookies at https://www.aboutads.info/choices. Learn how Google uses data from sites that show its ads at https://policies.google.com/technologies/partner-sites. You can also block or delete cookies in your browser settings. Ads will still appear, but they will not be personalised.',
         ],
       },
       {
@@ -164,7 +172,7 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
       {
         title: 'हम क्या नहीं लेते',
         paragraphs: [
-          'हम आपका फ़ोन नंबर, लोकेशन, कॉन्टैक्ट या कोई भुगतान विवरण नहीं लेते। हम आपका डेटा बेचते नहीं, विज्ञापन के लिए इस्तेमाल नहीं करते, और आपको ट्रैक या प्रोफ़ाइल नहीं करते। आपका ईमेल दूसरे छात्रों को कभी नहीं दिखाया जाता।',
+          'हम आपका फ़ोन नंबर, लोकेशन, कॉन्टैक्ट या कोई भुगतान विवरण नहीं लेते। हम आपका डेटा बेचते नहीं, और विज्ञापनदाताओं को आपका नाम, ईमेल, लिस्टिंग या संदेश कभी नहीं देते। आपका ईमेल दूसरे छात्रों को कभी नहीं दिखाया जाता। हमारे पेजों पर दिखने वाले विज्ञापनों के बारे में नीचे "विज्ञापन और कुकीज़" भाग में बताया गया है।',
         ],
       },
       {
@@ -181,6 +189,14 @@ export const NOTICE: Record<'en' | 'hi', Notice> = {
           'मॉडरेटर रिपोर्ट और उसकी समीक्षा के लिए ज़रूरी सामग्री देखते हैं।',
           'एडमिन हर खाते का कॉलेज ईमेल, उसने आख़िरी बार कब लॉग-इन किया, उसकी चेतावनियाँ और प्रतिबंध, और उसकी लिस्टिंग, ऑफ़र, संदेशों और रिपोर्टों की संख्या भी देख सकते हैं। वे इसका उपयोग केवल प्लेटफ़ॉर्म चलाने और सुरक्षित रखने के लिए करते हैं।',
           'हमारी ओर से डेटा संभालने वाली कंपनियाँ ("डेटा प्रोसेसर"): Supabase (डेटाबेस, लॉगिन और फ़ाइल स्टोरेज), Vercel (वेबसाइट होस्टिंग) और {emailProvider} (सत्यापन और पासवर्ड-रीसेट ईमेल भेजती है)। वे आपका डेटा केवल हमें अपनी सेवा देने के लिए, अपनी डेटा-प्रोसेसिंग शर्तों के तहत इस्तेमाल कर सकती हैं। प्रदाता बदलने पर हम यह सूचना अपडेट करेंगे।',
+        ],
+      },
+      {
+        title: 'विज्ञापन और कुकीज़',
+        paragraphs: [
+          'GoodsMandi चलाने का ख़र्च निकालने के लिए हम Google AdSense के विज्ञापन दिखाते हैं। Google, एक तीसरे पक्ष (third-party) विक्रेता के रूप में, हमारे पेजों पर विज्ञापन दिखाने के लिए कुकीज़ और मिलती-जुलती तकनीकों का उपयोग करता है। इसकी विज्ञापन कुकीज़ से Google और उसके साझेदार GoodsMandi और दूसरी वेबसाइटों पर आपकी विज़िट के आधार पर आपको विज्ञापन दिखा सकते हैं।',
+          'जब कोई विज्ञापन लोड होता है तो Google को आपके ब्राउज़र से कुछ जानकारी मिलती है, जैसे आपका IP पता, आप किस पेज पर हैं, आपका डिवाइस और ब्राउज़र, और उसकी कुकीज़। Google इसे हमारी नहीं, अपनी गोपनीयता नीति के तहत इस्तेमाल करता है। हम Google को आपका नाम, ईमेल, लिस्टिंग या संदेश नहीं देते।',
+          'आप https://adssettings.google.com (Google विज्ञापन सेटिंग) पर Google के निजीकृत (personalised) विज्ञापन बंद कर सकते हैं। आप https://www.aboutads.info/choices पर कई तीसरे पक्ष विक्रेताओं की निजीकृत-विज्ञापन कुकीज़ से भी बाहर हो सकते हैं। Google विज्ञापन दिखाने वाली साइटों के डेटा का उपयोग कैसे करता है, यह https://policies.google.com/technologies/partner-sites पर देखें। आप अपने ब्राउज़र की सेटिंग में कुकीज़ ब्लॉक या डिलीट भी कर सकते हैं। विज्ञापन फिर भी दिखेंगे, पर वे निजीकृत नहीं होंगे।',
         ],
       },
       {

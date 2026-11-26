@@ -8,6 +8,14 @@ const supabaseHostname = supabaseUrl
 // Sent with every page. They stop other sites from embedding GoodsMandi in a
 // frame (clickjacking), stop browsers guessing file types, and keep full page
 // addresses out of the Referer header sent to other sites.
+//
+// Google AdSense: the Content-Security-Policy below only sets frame-ancestors (who may
+// frame GoodsMandi). It has no script-src, img-src, frame-src or connect-src, so it does
+// not block the AdSense script, its ad frames, images or requests to Google's ad domains.
+// If a stricter CSP is ever added here, it must allow pagead2.googlesyndication.com,
+// tpc.googlesyndication.com, googleads.g.doubleclick.net, *.doubleclick.net,
+// adservice.google.com, *.googlesyndication.com, *.googleadservices.com, *.google.com,
+// *.gstatic.com and fundingchoicesmessages.google.com.
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
