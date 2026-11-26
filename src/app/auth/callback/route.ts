@@ -1,8 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { publicOrigin } from '@/lib/origin'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  // Not new URL(request.url).origin: behind nginx that is localhost:3000 (see lib/origin.ts)
+  const origin = publicOrigin(request)
   const code = searchParams.get('code')
   // Only allow same-site paths, so `next` can't send users to another host
   const nextParam = searchParams.get('next')
