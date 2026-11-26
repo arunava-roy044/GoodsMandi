@@ -86,6 +86,11 @@ systemctl daemon-reload
 systemctl enable goodsmandi
 
 echo "==> nginx"
+# Tell browsers to use HTTPS only for this site (sent on every response; browsers ignore
+# it over plain http). Start with one year and no includeSubDomains.
+cat > /etc/nginx/conf.d/goodsmandi-security.conf <<'SEC'
+add_header Strict-Transport-Security "max-age=31536000" always;
+SEC
 # Supabase login cookies make response headers bigger than nginx's default
 # buffers ("upstream sent too big header" -> 502 for signed-in users)
 cat > /etc/nginx/conf.d/goodsmandi-buffers.conf <<'BUF'
