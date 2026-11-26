@@ -8,6 +8,7 @@
 #   Repository secret    VM_SSH_KEY                    the PRIVATE half of the deploy key
 #   Repository secret    NEXT_PUBLIC_SUPABASE_URL      same value as in .env.local
 #   Repository secret    NEXT_PUBLIC_SUPABASE_ANON_KEY same value as in .env.local
+#   Repository variable  NEXT_PUBLIC_TURNSTILE_SITE_KEY  (optional) Cloudflare Turnstile site key
 name: Deploy to Azure VM
 
 on:
@@ -30,6 +31,9 @@ jobs:
       # NEXT_PUBLIC_* values are baked into the browser code during the build
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      # Public site key for the bot check; empty means the check is off. Not a secret, but kept
+      # in the same place as the other build values.
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
       BUILD_STANDALONE: '1'
       VM_HOST: ${{ vars.VM_HOST }}
       VM_USER: ${{ vars.VM_USER || 'deploy' }}

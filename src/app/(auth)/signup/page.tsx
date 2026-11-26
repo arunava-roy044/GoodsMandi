@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CheckEmailScreen } from '@/components/auth/CheckEmailScreen'
+import { Turnstile, useCaptcha } from '@/components/auth/Turnstile'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
@@ -26,6 +27,7 @@ export default function SignupPage() {
   const { showToast } = useToast()
   const router = useRouter()
   const supabase = createClient()
+  const captcha = useCaptcha()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +53,11 @@ export default function SignupPage() {
       return
     }
 
+    if (captcha.enabled && !captcha.token) {
+      showToast('Please wait for the security check to finish.', 'error')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -68,6 +75,7 @@ export default function SignupPage() {
             privacy_notice_version: PRIVACY_NOTICE_VERSION,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          captchaToken: captcha.authToken,
         }
       })
 
@@ -83,6 +91,7 @@ export default function SignupPage() {
       showToast(errorMessage(err, 'An unexpected error occurred.'), 'error')
     } finally {
       setLoading(false)
+      captcha.reset()
     }
   }
 
@@ -224,6 +233,8 @@ export default function SignupPage() {
             </label>
           </div>
         </div>
+
+        <Turnstile onToken={captcha.setToken} resetSignal={captcha.resetSignal} />
 
         <button
           type="submit"
