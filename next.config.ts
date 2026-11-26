@@ -17,6 +17,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Don't tell every visitor which framework the site runs on
+  poweredByHeader: false,
   // Azure App Service: BUILD_STANDALONE=1 makes `next build` produce a small, self-contained
   // server in .next/standalone (see .github/workflows/deploy-azure.yml). Off by default, so
   // Vercel and the CI build are unaffected.
